@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Тестовые артефакты
+tests/_export_test*.csv
+tests/_big_test.pcap
+tests/_dns_tcp_test.pcap
+tests/_*.pcap
+tests/_*.pcapng
+*.log
+
+# Сборка приложения
+build/
+dist/
+
+# Резервные копии проекта
+backups/
+
+# Скачанные дампы для проверки на реальном трафике
+samples/
+
+# Системное
+.DS_Store
+Thumbs.db
+desktop.ini
