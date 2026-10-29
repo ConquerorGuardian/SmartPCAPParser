@@ -94,7 +94,7 @@ def load_settings(path: Path | str | None = None) -> dict[str, Any]:
     """Читает настройки; при любой ошибке — значения по умолчанию."""
     target = Path(path) if path is not None else SETTINGS_FILE
     try:
-        with open(target, "r", encoding="utf-8") as handle:
+        with open(target, encoding="utf-8") as handle:
             return normalize(json.load(handle))
     except (OSError, ValueError):
         return dict(DEFAULTS)

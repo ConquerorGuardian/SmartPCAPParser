@@ -382,15 +382,15 @@ if __name__ == "__main__":
         try:
             test()
         except AssertionError as exc:
-            print("FAIL: {}: {}".format(test.__name__, exc))
+            print(f"FAIL: {test.__name__}: {exc}")
             failed += 1
         except Exception as exc:  # noqa: BLE001
-            print("ERROR: {}: {}".format(test.__name__, exc))
+            print(f"ERROR: {test.__name__}: {exc}")
             failed += 1
 
     print("")
     print("-" * 40)
-    print("Пройдено: {}/{}".format(len(tests) - failed, len(tests)))
+    print(f"Пройдено: {len(tests) - failed}/{len(tests)}")
     if failed:
         sys.exit(1)
     print("Все тесты прошли!")

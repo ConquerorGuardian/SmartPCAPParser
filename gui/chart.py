@@ -59,7 +59,7 @@ class TrafficChart(tk.Canvas):
 
     def _format_value(self, value: int) -> str:
         if self.metric == "packets":
-            return "{} пак.".format(value)
+            return f"{value} пак."
         from parser.stats import format_bytes
         return format_bytes(value)
 
@@ -149,7 +149,7 @@ class TrafficChart(tk.Canvas):
 
         self.create_text(
             left + 4, top + 2,
-            text="{} за интервал".format(self._format_value(peak)),
+            text=f"{self._format_value(peak)} за интервал",
             fill=text, anchor="nw", font=("Segoe UI", 9),
         )
 
@@ -171,7 +171,7 @@ class TrafficChart(tk.Canvas):
 
         label = "{} · {}".format(
             self._format_time(bucket.start),
-            "{} пакетов · {}".format(bucket.packets, self._format_bytes(bucket.bytes)),
+            f"{bucket.packets} пакетов · {self._format_bytes(bucket.bytes)}",
         )
         anchor_x = x + 12
         anchor = "nw"
@@ -191,12 +191,12 @@ class TrafficChart(tk.Canvas):
     @staticmethod
     def _format_time(seconds: float) -> str:
         if seconds < 60:
-            return "{:.1f} с".format(seconds)
+            return f"{seconds:.1f} с"
         minutes, rest = divmod(seconds, 60)
         if minutes < 60:
-            return "{:.0f}:{:02.0f}".format(minutes, rest)
+            return f"{minutes:.0f}:{rest:02.0f}"
         hours, minutes = divmod(minutes, 60)
-        return "{:.0f}:{:02.0f}:{:02.0f}".format(hours, minutes, rest)
+        return f"{hours:.0f}:{minutes:02.0f}:{rest:02.0f}"
 
     # ------------------------------------------------------------------
     # Наведение

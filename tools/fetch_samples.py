@@ -69,8 +69,8 @@ def main() -> int:
         print("{:>9}  {}".format(len(data), item["name"]))
 
     print("")
-    print("всего файлов: {}".format(len(list(chosen))))
-    print("всего байт: {}".format(total))
+    print(f"всего файлов: {len(list(chosen))}")
+    print(f"всего байт: {total}")
     return 0
 
 

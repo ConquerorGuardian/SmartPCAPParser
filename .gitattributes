@@ -1,0 +1,16 @@
+* text=auto eol=lf
+
+*.py text
+*.md text
+*.yml text
+*.yaml text
+*.toml text
+*.json text
+
+*.pcap binary
+*.pcapng binary
+*.png binary
+*.ico binary
+*.gif binary
+*.zip binary
+*.exe binary

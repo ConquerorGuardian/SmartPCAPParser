@@ -19,8 +19,8 @@
     print(render_stream(stream, view="both", mode="text"))
 """
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, Optional, Sequence
 
 from .pcap_reader import Packet
 
@@ -223,11 +223,11 @@ class TcpStream:
 def format_endpoint(endpoint: Endpoint) -> str:
     host, port = endpoint
     if ":" in host:          # IPv6
-        return "[{}]:{}".format(host, port)
-    return "{}:{}".format(host, port)
+        return f"[{host}]:{port}"
+    return f"{host}:{port}"
 
 
-def flow_key(packet: Packet) -> Optional[tuple]:
+def flow_key(packet: Packet) -> tuple | None:
     """
     Ключ соединения: пара концов в отсортированном виде.
 
@@ -266,7 +266,7 @@ def conversation_frames(packets: Sequence, frame_number: int,
     ]
 
 
-def datagram_key(packet: Packet) -> Optional[tuple]:
+def datagram_key(packet: Packet) -> tuple | None:
     """Ключ UDP-обмена: та же пара концов, что и у TCP-потока."""
     if packet.transport != "UDP" or not packet.has_ports():
         return None
@@ -278,7 +278,7 @@ def datagram_key(packet: Packet) -> Optional[tuple]:
 def follow_datagram_flow(
     packets: Sequence[Packet],
     frame_number: int,
-) -> Optional[TcpStream]:
+) -> TcpStream | None:
     """
     Собирает UDP-обмен, к которому относится пакет.
 
@@ -341,14 +341,14 @@ def follow_datagram_flow(
         client_to_server=StreamDirection(
             sender=client,
             receiver=server,
-            label="{} -> {}".format(format_endpoint(client), format_endpoint(server)),
+            label=f"{format_endpoint(client)} -> {format_endpoint(server)}",
             stream=build(client_data),
             packets=client_packets,
         ),
         server_to_client=StreamDirection(
             sender=server,
             receiver=client,
-            label="{} -> {}".format(format_endpoint(server), format_endpoint(client)),
+            label=f"{format_endpoint(server)} -> {format_endpoint(client)}",
             stream=build(server_data),
             packets=server_packets,
         ),
@@ -368,7 +368,7 @@ def _client_endpoint(members: Sequence[Packet]) -> Endpoint:
 def follow_stream(
     packets: Sequence[Packet],
     frame_number: int,
-) -> Optional[TcpStream]:
+) -> TcpStream | None:
     """
     Собирает поток, к которому относится пакет с номером `frame_number`.
 
@@ -417,14 +417,14 @@ def follow_stream(
     client_to_server = StreamDirection(
         sender=client,
         receiver=server,
-        label="{} -> {}".format(format_endpoint(client), format_endpoint(server)),
+        label=f"{format_endpoint(client)} -> {format_endpoint(server)}",
         stream=assemble_segments(client_segments),
         packets=client_packets,
     )
     server_to_client = StreamDirection(
         sender=server,
         receiver=client,
-        label="{} -> {}".format(format_endpoint(server), format_endpoint(client)),
+        label=f"{format_endpoint(server)} -> {format_endpoint(client)}",
         stream=assemble_segments(server_segments),
         packets=server_packets,
     )
@@ -490,7 +490,7 @@ def render_text(stream: AssembledStream, limit: int = MAX_RENDER_BYTES) -> str:
     for chunk in stream.chunks:
         gap = gap_map.get(chunk.offset)
         if gap is not None:
-            pieces.append("\n[пропущено {} байт]\n".format(gap.length))
+            pieces.append(f"\n[пропущено {gap.length} байт]\n")
 
         data = chunk.data
         if used + len(data) > limit:
@@ -498,7 +498,7 @@ def render_text(stream: AssembledStream, limit: int = MAX_RENDER_BYTES) -> str:
         used += len(data)
         pieces.append(_sanitize(data.decode("utf-8", errors="replace")))
         if used >= limit:
-            pieces.append("\n[... вывод обрезан: показаны первые {} байт ...]\n".format(limit))
+            pieces.append(f"\n[... вывод обрезан: показаны первые {limit} байт ...]\n")
             break
 
     text = "".join(pieces)
@@ -514,7 +514,7 @@ def render_hex(stream: AssembledStream, limit: int = MAX_RENDER_BYTES) -> str:
     for chunk in stream.chunks:
         gap = gap_map.get(chunk.offset)
         if gap is not None:
-            lines.append("{:08x}  << пропущено {} байт >>".format(gap.offset, gap.length))
+            lines.append(f"{gap.offset:08x}  << пропущено {gap.length} байт >>")
 
         data = chunk.data
         if used + len(data) > limit:
@@ -523,16 +523,16 @@ def render_hex(stream: AssembledStream, limit: int = MAX_RENDER_BYTES) -> str:
 
         for index in range(0, len(data), 16):
             block = data[index:index + 16]
-            hex_part = " ".join("{:02x}".format(byte) for byte in block).ljust(47)
+            hex_part = " ".join(f"{byte:02x}" for byte in block).ljust(47)
             text_part = "".join(
                 chr(byte) if 32 <= byte < 127 else "." for byte in block
             )
             lines.append(
-                "{:08x}  {}  {}".format(chunk.offset + index, hex_part, text_part)
+                f"{chunk.offset + index:08x}  {hex_part}  {text_part}"
             )
 
         if used >= limit:
-            lines.append("... вывод обрезан: показаны первые {} байт ...".format(limit))
+            lines.append(f"... вывод обрезан: показаны первые {limit} байт ...")
             break
 
     return "\n".join(lines) + "\n" if lines else ""
@@ -541,9 +541,7 @@ def render_hex(stream: AssembledStream, limit: int = MAX_RENDER_BYTES) -> str:
 def direction_header(direction: StreamDirection) -> str:
     """Заголовок блока направления — как разделитель в Wireshark."""
     stream = direction.stream
-    return "=== {} · {} байт · {} сегментов ===\n".format(
-        direction.label, stream.length, stream.segments
-    )
+    return f"=== {direction.label} · {stream.length} байт · {stream.segments} сегментов ===\n"
 
 
 def render_direction(direction: StreamDirection, mode: str = MODE_TEXT,
@@ -569,12 +567,6 @@ def render_stream(stream: TcpStream, view: str = VIEW_BOTH,
 def summarize(stream: TcpStream) -> str:
     """Одна строка для строки состояния."""
     return (
-        "Поток {} <-> {}: пакетов {}, клиент -> сервер {} байт, "
-        "сервер -> клиент {} байт".format(
-            format_endpoint(stream.client),
-            format_endpoint(stream.server),
-            len(stream.packets),
-            stream.client_to_server.stream.length,
-            stream.server_to_client.stream.length,
-        )
+        f"Поток {format_endpoint(stream.client)} <-> {format_endpoint(stream.server)}: пакетов {len(stream.packets)}, клиент -> сервер {stream.client_to_server.stream.length} байт, "
+        f"сервер -> клиент {stream.server_to_client.stream.length} байт"
     )

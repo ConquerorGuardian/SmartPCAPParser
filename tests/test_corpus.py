@@ -67,10 +67,10 @@ def test_corpus_reads_and_filters():
     for path in files:
         packets, error = handler.load(path)
         if error:
-            failures.append("{}: чтение — {}".format(path.name, error))
+            failures.append(f"{path.name}: чтение — {error}")
             continue
         if not packets:
-            failures.append("{}: 0 пакетов".format(path.name))
+            failures.append(f"{path.name}: 0 пакетов")
             continue
 
         total_packets += len(packets)
@@ -83,9 +83,7 @@ def test_corpus_reads_and_filters():
                 handler.apply(packets, filter_string)
             except Exception as exc:                   # noqa: BLE001
                 failures.append(
-                    "{}: команда «{}» → {}: {}".format(
-                        path.name, command, filter_string, exc
-                    )
+                    f"{path.name}: команда «{command}» → {filter_string}: {exc}"
                 )
                 continue
             # Фильтр должен быть вычислим и не падать на каждом пакете.
@@ -100,15 +98,11 @@ def test_corpus_reads_and_filters():
             endpoints(packets)
         except Exception as exc:                       # noqa: BLE001
             failures.append(
-                "{}: вердикт/статистика — {}: {}".format(
-                    path.name, type(exc).__name__, exc
-                )
+                f"{path.name}: вердикт/статистика — {type(exc).__name__}: {exc}"
             )
 
     assert not failures, "проблемы на реальных дампах:\n  " + "\n  ".join(failures[:12])
-    print("PASS: test_corpus_reads_and_filters ({} файлов, {} пакетов)".format(
-        len(files), total_packets
-    ))
+    print(f"PASS: test_corpus_reads_and_filters ({len(files)} файлов, {total_packets} пакетов)")
 
 
 def test_corpus_gzip():
@@ -121,9 +115,9 @@ def test_corpus_gzip():
     handler = PcapHandler()
     for path in files:
         packets, error = handler.load(path)
-        assert error is None, "{}: {}".format(path.name, error)
-        assert packets, "{}: ноль пакетов".format(path.name)
-    print("PASS: test_corpus_gzip ({} файлов)".format(len(files)))
+        assert error is None, f"{path.name}: {error}"
+        assert packets, f"{path.name}: ноль пакетов"
+    print(f"PASS: test_corpus_gzip ({len(files)} файлов)")
 
 
 def test_corpus_undecodable_are_reported():
@@ -144,13 +138,11 @@ def test_corpus_undecodable_are_reported():
             verdict = build_verdict(packets)
             titles = [finding.title for finding in verdict.findings]
             assert "Формат кадра не поддерживается" in titles, (
-                "{}: вердикт не заметил {} неразобранных пакетов, находки: {}".format(
-                    path.name, broken, titles
-                )
+                f"{path.name}: вердикт не заметил {broken} неразобранных пакетов, находки: {titles}"
             )
             checked += 1
 
-    print("PASS: test_corpus_undecodable_are_reported ({} файлов)".format(checked))
+    print(f"PASS: test_corpus_undecodable_are_reported ({checked} файлов)")
 
 
 def main() -> int:
@@ -165,15 +157,15 @@ def main() -> int:
         try:
             test()
         except AssertionError as exc:
-            print("FAIL: {}: {}".format(test.__name__, exc))
+            print(f"FAIL: {test.__name__}: {exc}")
             failed += 1
         except Exception as exc:                       # noqa: BLE001
-            print("FAIL: {}: {}: {}".format(test.__name__, type(exc).__name__, exc))
+            print(f"FAIL: {test.__name__}: {type(exc).__name__}: {exc}")
             failed += 1
 
     print("")
     print("-" * 40)
-    print("Пройдено: {}/{}".format(len(tests) - failed, len(tests)))
+    print(f"Пройдено: {len(tests) - failed}/{len(tests)}")
     if failed:
         print("Есть падения.")
         return 1

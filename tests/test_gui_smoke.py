@@ -41,7 +41,7 @@ def run_flow() -> None:
         app.pcap_path = SAMPLE
         app.packets = packets
         app.file_label.configure(text=str(SAMPLE))
-        app.packet_label.configure(text="Пакетов: {}".format(len(packets)))
+        app.packet_label.configure(text=f"Пакетов: {len(packets)}")
         app.update()
 
         app.command_entry.insert(0, "покажи http трафик")
@@ -113,7 +113,7 @@ def run_flow() -> None:
         for label, command in gui_app.QUICK_FILTERS:
             query = app.engine.parse(command)
             filter_string = gui_app.generate_filter(query)
-            assert filter_string, "{}: команда «{}» ничего не даёт".format(label, command)
+            assert filter_string, f"{label}: команда «{command}» ничего не даёт"
             gui_app.compile_filter(filter_string)
 
         # Живая подсказка: что понято из введённой команды.
@@ -684,7 +684,7 @@ def run_big_file_flow() -> None:
 
         assert len(app.packets) == 9000, len(app.packets)
         rows = len(app.tree.get_children())
-        assert rows == 9000, "в таблице {} строк вместо 9000".format(rows)
+        assert rows == 9000, f"в таблице {rows} строк вместо 9000"
         assert VIEW_LIMIT >= 9000
 
         status = app.status_label.cget("text")
@@ -852,15 +852,15 @@ if __name__ == "__main__":
         try:
             flow()
         except AssertionError as exc:
-            print("FAIL: {}:".format(flow.__name__), exc)
+            print(f"FAIL: {flow.__name__}:", exc)
             failed += 1
         except Exception as exc:  # noqa: BLE001
-            print("ERROR: {}:".format(flow.__name__), exc)
+            print(f"ERROR: {flow.__name__}:", exc)
             failed += 1
 
     print("")
     print("-" * 40)
-    print("Пройдено: {}/{}".format(len(flows) - failed, len(flows)))
+    print(f"Пройдено: {len(flows) - failed}/{len(flows)}")
     if failed:
         sys.exit(1)
     print("Все тесты прошли!")

@@ -194,7 +194,7 @@ def main() -> None:
     frames = build_frames()
     write_pcap(OUT_DIR / "sample_traffic.pcap", frames)
     write_pcapng(OUT_DIR / "sample_traffic.pcapng", frames)
-    print("Создано {} пакетов".format(len(frames)))
+    print(f"Создано {len(frames)} пакетов")
     print("  {}".format(OUT_DIR / "sample_traffic.pcap"))
     print("  {}".format(OUT_DIR / "sample_traffic.pcapng"))
 

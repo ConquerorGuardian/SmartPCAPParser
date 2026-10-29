@@ -78,7 +78,7 @@ def test_broken_file():
 def test_history_cleanup():
     """История без дубликатов и не длиннее лимита."""
     history = ["покажи http", "покажи http", "  ", "dns"] + [
-        "команда {}".format(index) for index in range(HISTORY_LIMIT + 10)
+        f"команда {index}" for index in range(HISTORY_LIMIT + 10)
     ]
     cleaned = normalize({"history": history})["history"]
     assert cleaned[:2] == ["покажи http", "dns"], cleaned[:2]
@@ -113,15 +113,15 @@ def main() -> int:
         try:
             test()
         except AssertionError as exc:
-            print("FAIL: {}: {}".format(test.__name__, exc))
+            print(f"FAIL: {test.__name__}: {exc}")
             failed += 1
         except Exception as exc:                       # noqa: BLE001
-            print("FAIL: {}: {}: {}".format(test.__name__, type(exc).__name__, exc))
+            print(f"FAIL: {test.__name__}: {type(exc).__name__}: {exc}")
             failed += 1
 
     print("")
     print("-" * 40)
-    print("Пройдено: {}/{}".format(len(tests) - failed, len(tests)))
+    print(f"Пройдено: {len(tests) - failed}/{len(tests)}")
     if failed:
         print("Есть падения.")
         return 1

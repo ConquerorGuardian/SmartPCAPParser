@@ -174,7 +174,7 @@ def test_port_to_protocol_map():
     }
     for port, expected in tcp_cases.items():
         actual = _detect_tcp_app(port, 40000, b"\x00\x01")
-        assert actual == expected, "tcp {}: {} != {}".format(port, actual, expected)
+        assert actual == expected, f"tcp {port}: {actual} != {expected}"
 
     udp_cases = {
         69: "TFTP",
@@ -186,7 +186,7 @@ def test_port_to_protocol_map():
     }
     for port, expected in udp_cases.items():
         actual = _detect_udp_app(port, 40000)
-        assert actual == expected, "udp {}: {} != {}".format(port, actual, expected)
+        assert actual == expected, f"udp {port}: {actual} != {expected}"
     print("PASS: test_port_to_protocol_map")
 
 
@@ -212,7 +212,7 @@ def test_payload_protocols():
     ]
     for payload, expected in cases:
         actual = _detect_tcp_app(40000, 12345, payload)
-        assert actual == expected, "{!r}: {} != {}".format(payload[:20], actual, expected)
+        assert actual == expected, f"{payload[:20]!r}: {actual} != {expected}"
     print("PASS: test_payload_protocols")
 
 
@@ -581,15 +581,15 @@ if __name__ == "__main__":
         try:
             test()
         except AssertionError as exc:
-            print("FAIL: {}: {}".format(test.__name__, exc))
+            print(f"FAIL: {test.__name__}: {exc}")
             failed += 1
         except Exception as exc:  # noqa: BLE001
-            print("ERROR: {}: {}".format(test.__name__, exc))
+            print(f"ERROR: {test.__name__}: {exc}")
             failed += 1
 
     print("")
     print("-" * 40)
-    print("Пройдено: {}/{}".format(len(tests) - failed, len(tests)))
+    print(f"Пройдено: {len(tests) - failed}/{len(tests)}")
     if failed:
         sys.exit(1)
     print("Все тесты прошли!")

@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser.engine import NaturalLanguageFilterEngine, ParsedQuery
+from parser.engine import NaturalLanguageFilterEngine
 from parser.filters import generate_filter
 
 
@@ -154,9 +154,7 @@ def test_negation():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
 
     query = engine.parse("кроме http")
     assert query.has_negation()
@@ -176,9 +174,7 @@ def test_port_ranges():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
 
     query = engine.parse("порты 1000-2000")
     assert query.has_port_range()
@@ -198,9 +194,7 @@ def test_ipv6():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
 
     # MAC не должен притвориться IPv6.
     mac_filter = generate_filter(engine.parse("мак ff:ff:ff:ff:ff:ff"))
@@ -227,9 +221,7 @@ def test_protocol_groups():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
     print("PASS: test_protocol_groups passed")
 
 
@@ -275,9 +267,7 @@ def test_vocabulary():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
     print("PASS: test_vocabulary passed")
 
 
@@ -297,9 +287,7 @@ def test_chatty_commands():
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
 
     # «покажи всё кроме http» — это не help, а обычная команда.
     assert engine.parse("покажи всё кроме http").intent == "show"
@@ -335,9 +323,7 @@ def test_extended_dictionary():
     for command, expected in cases.items():
         query = engine.parse(command)
         actual = generate_filter(query)
-        assert actual == expected, "{}: ожидалось {!r}, получено {!r}".format(
-            command, expected, actual
-        )
+        assert actual == expected, f"{command}: ожидалось {expected!r}, получено {actual!r}"
     print("PASS: test_extended_dictionary passed")
 
 
@@ -359,9 +345,7 @@ def test_host_commands():
     assert query.has_host(), query.entities
     assert generate_filter(query) == expected_group
 
-    assert generate_filter(engine.parse("не сайт example.com")) == "not ({})".format(
-        expected_group[1:-1]
-    )
+    assert generate_filter(engine.parse("не сайт example.com")) == f"not ({expected_group[1:-1]})"
     assert generate_filter(engine.parse("покажи сайт example.com и порт 443")) == (
         "tcp.port==443 and " + expected_group
     )
@@ -434,15 +418,15 @@ if __name__ == "__main__":
         try:
             test()
         except AssertionError as e:
-            print("FAIL: {} FAILED: {}".format(test.__name__, e))
+            print(f"FAIL: {test.__name__} FAILED: {e}")
             failed += 1
         except Exception as e:  # noqa: BLE001
-            print("ERROR: {} ERROR: {}".format(test.__name__, e))
+            print(f"ERROR: {test.__name__} ERROR: {e}")
             failed += 1
 
     print("")
     print("-"*40)
-    print("Пройдено: {}/{}".format(len(tests) - failed, len(tests)))
+    print(f"Пройдено: {len(tests) - failed}/{len(tests)}")
     if failed:
         sys.exit(1)
     print("Все тесты прошли!")

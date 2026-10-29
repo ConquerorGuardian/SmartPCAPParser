@@ -12,10 +12,10 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import zipfile
 from datetime import datetime
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKUPS = ROOT / "backups"
@@ -45,7 +45,7 @@ def make_backup(note: str = "") -> Path:
     BACKUPS.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     version = project_version()
-    name = "SmartPCAPParser-{}-{}.zip".format(version, stamp)
+    name = f"SmartPCAPParser-{version}-{stamp}.zip"
     target = BACKUPS / name
 
     count = 0
@@ -61,14 +61,14 @@ def make_backup(note: str = "") -> Path:
 
         if note:
             archive.writestr(
-                Path("SmartPCAPParser") / "BACKUP_NOTE.txt",
+                "SmartPCAPParser/BACKUP_NOTE.txt",
                 "Версия: {}\nДата: {}\nКомментарий: {}\n".format(
                     version, datetime.now().isoformat(timespec="seconds"), note
                 ),
             )
 
     size_mb = target.stat().st_size / (1024 * 1024)
-    print("Бэкап: {} ({} файлов, {:.1f} МБ)".format(target, count, size_mb))
+    print(f"Бэкап: {target} ({count} файлов, {size_mb:.1f} МБ)")
     return target
 
 

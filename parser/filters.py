@@ -12,7 +12,6 @@
 - http or dns or icmp
 """
 
-from typing import Optional
 
 from .engine import ExtractedEntity, ParsedQuery
 
@@ -180,7 +179,7 @@ class FilterGenerator:
     def _ip_expression(entity: ExtractedEntity) -> str:
         family = "ipv6" if ":" in entity.normalized_value else "ip"
         suffix = {"src": ".src", "dst": ".dst"}.get(entity.direction or "", ".addr")
-        return "{}{}=={}".format(family, suffix, entity.normalized_value)
+        return f"{family}{suffix}=={entity.normalized_value}"
 
     def _generate_host_filters(self, query: ParsedQuery) -> list[str]:
         """Фильтры по именам: HTTP Host, TLS SNI и DNS-запрос одним условием."""
@@ -192,7 +191,7 @@ class FilterGenerator:
         plain: dict[bool, list[str]] = {False: [], True: []}
         for entity in host_entities:
             expression = "(" + " or ".join(
-                '{} contains "{}"'.format(field, entity.normalized_value)
+                f'{field} contains "{entity.normalized_value}"'
                 for field in self.HOST_FIELDS
             ) + ")"
             plain[entity.negated].append(expression)
@@ -282,19 +281,17 @@ class FilterGenerator:
     @staticmethod
     def _port_field(entity: ExtractedEntity, port_protocol: str) -> str:
         suffix = {"src": ".srcport", "dst": ".dstport"}.get(entity.direction or "", ".port")
-        return "{}{}".format(port_protocol, suffix)
+        return f"{port_protocol}{suffix}"
 
     def _port_expression(self, entity: ExtractedEntity, port_protocol: str) -> str:
-        return "{}=={}".format(
-            self._port_field(entity, port_protocol), entity.normalized_value
-        )
+        return f"{self._port_field(entity, port_protocol)}=={entity.normalized_value}"
 
     def _port_range_expression(self, entity: ExtractedEntity, port_protocol: str) -> str:
         start, end = entity.normalized_value.split("-")
         field = self._port_field(entity, port_protocol)
         # Синтаксис Wireshark: tcp.port in {1000..2000}; он же точен у нас,
         # в отличие от «>= и <=», которое в Wireshark считается по вхождениям.
-        return "{} in {{{}..{}}}".format(field, start, end)
+        return f"{field} in {{{start}..{end}}}"
 
     def _generate_mac_filters(self, query: ParsedQuery) -> list[str]:
         """Генерирует фильтры для MAC-адресов."""
@@ -306,7 +303,7 @@ class FilterGenerator:
         plain: dict[bool, list[str]] = {False: [], True: []}
         for entity in mac_entities:
             plain[entity.negated].append(
-                "eth.addr=={}".format(entity.normalized_value)
+                f"eth.addr=={entity.normalized_value}"
             )
 
         for negated, expressions in plain.items():
@@ -348,7 +345,7 @@ class FilterGenerator:
         return parts
 
     @staticmethod
-    def _combine(expressions: list[str], negated: bool) -> Optional[str]:
+    def _combine(expressions: list[str], negated: bool) -> str | None:
         """Склеивает выражения через «или»; при отрицании — «not (...)»."""
         unique = list(dict.fromkeys(expression for expression in expressions if expression))
         if not unique:
@@ -359,27 +356,28 @@ class FilterGenerator:
                 single = unique[0]
                 if single.startswith("(") and single.endswith(")"):
                     single = single[1:-1]
-                return "not ({})".format(single)
-            return "not ({})".format(joined)
-        return joined if len(unique) == 1 else "({})".format(joined)
+                return f"not ({single})"
+            return f"not ({joined})"
+        return joined if len(unique) == 1 else f"({joined})"
 
     @staticmethod
     def validate(filter_string: str) -> bool:
-        """
-        Грубая проверка валидности filter-строки.
+        """Проверяет, что фильтр можно вычислить.
 
-        В полной версии можно интегрировать pyshark для проверки.
-        Пока просто проверяем базовую структуру.
+        Пустой фильтр валиден («показать всё»). Настоящая проверка — это
+        разбор строки вычислителем: если он падает, фильтр невалиден.
         """
-        if not filter_string:
+        if not filter_string or not filter_string.strip():
             return True
-        # Проверяем, что filter не содержит явных ошибок синтаксиса
-        forbidden = ["==", "&&", "||", "..."]
-        for part in filter_string.split():
-            if part.startswith("==") or part.endswith("=="):
-                continue
-            if part in ("and", "or", "not"):
-                continue
+
+        from .matcher import FilterError, compile_filter
+
+        try:
+            compile_filter(filter_string)
+        except FilterError:
+            return False
+        except Exception:                      # noqa: BLE001 — любой сбой разбора
+            return False
         return True
 
 

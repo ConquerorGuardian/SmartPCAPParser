@@ -20,7 +20,7 @@ display-фильтров и превращает его в функцию-пре
 """
 
 import re
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from .pcap_reader import Packet
 
@@ -150,15 +150,15 @@ class _Parser:
         self.pos = 0
 
     # -- утилиты --------------------------------------------------------
-    def peek(self) -> Optional[str]:
+    def peek(self) -> str | None:
         return self.tokens[self.pos] if self.pos < len(self.tokens) else None
 
-    def take(self, expected: Optional[str] = None) -> str:
+    def take(self, expected: str | None = None) -> str:
         if self.pos >= len(self.tokens):
             raise FilterError("Неожиданный конец фильтра")
         token = self.tokens[self.pos]
         if expected is not None and token != expected:
-            raise FilterError("Ожидалось '{}', получено '{}'".format(expected, token))
+            raise FilterError(f"Ожидалось '{expected}', получено '{token}'")
         self.pos += 1
         return token
 
@@ -169,7 +169,7 @@ class _Parser:
     def parse(self) -> Predicate:
         node = self.parse_or()
         if not self.at_end():
-            raise FilterError("Лишний фрагмент фильтра: '{}'".format(self.peek()))
+            raise FilterError(f"Лишний фрагмент фильтра: '{self.peek()}'")
         return node
 
     def parse_or(self) -> Predicate:
@@ -228,11 +228,11 @@ class _Parser:
         if field in PROTOCOL_NAMES:
             return _protocol(field)
         raise FilterError(
-            "Неподдерживаемый фильтр: '{}'. Поддерживаются поля ip.addr, ip.src, "
+            f"Неподдерживаемый фильтр: '{field}'. Поддерживаются поля ip.addr, ip.src, "
             "ip.dst, tcp.port, udp.port, eth.addr, frame.len, ip.ttl, ip.len, "
             "tcp.len, tcp.window_size, tcp.flags.*, udp.length, icmp.type, "
             "http.host, dns.qry.name, tls.sni, «tcp contains …» "
-            "и имена протоколов.".format(field)
+            "и имена протоколов."
         )
 
     def parse_values(self) -> list[str]:
@@ -310,7 +310,7 @@ def _set_comparison(field: str, values: list[str], ranges: list[tuple[str, str]]
 
     if field not in PORT_FIELDS:
         raise FilterError(
-            "Набор значений поддерживается для портов и числовых полей: '{}'".format(field)
+            f"Набор значений поддерживается для портов и числовых полей: '{field}'"
         )
 
     try:
@@ -354,7 +354,7 @@ def _set_comparison(field: str, values: list[str], ranges: list[tuple[str, str]]
     return predicate
 
 
-def _numeric_value(field: str, packet: Packet) -> Optional[int]:
+def _numeric_value(field: str, packet: Packet) -> int | None:
     """Значение числового поля или None, если для этого пакета оно неприменимо."""
     value = NUMERIC_FIELDS[field](packet)
     prefix = field.split(".")[0]
@@ -372,13 +372,13 @@ def _numeric_value(field: str, packet: Packet) -> Optional[int]:
 def _numeric_comparison(field: str, op: str, values: list[str]) -> Predicate:
     compare = PORT_OPS.get(op)
     if compare is None:
-        raise FilterError("Неизвестное сравнение для числа: '{}'".format(op))
+        raise FilterError(f"Неизвестное сравнение для числа: '{op}'")
 
     try:
         wanted = [int(value) for value in values]
     except ValueError as exc:
         raise FilterError(
-            "Для поля '{}' нужно число, получено {}".format(field, values)
+            f"Для поля '{field}' нужно число, получено {values}"
         ) from exc
 
     def predicate(packet: Packet) -> bool:
@@ -395,7 +395,7 @@ def _numeric_set(field: str, values: list[str], ranges: list[tuple[str, str]]) -
         wanted = {int(value) for value in values}
         bounds = [(int(start), int(end)) for start, end in ranges]
     except ValueError as exc:
-        raise FilterError("В наборе чисел должны быть числа: '{}'".format(field)) from exc
+        raise FilterError(f"В наборе чисел должны быть числа: '{field}'") from exc
 
     def predicate(packet: Packet) -> bool:
         value = _numeric_value(field, packet)
@@ -454,7 +454,7 @@ def _string_comparison(field: str, op: str, value: str) -> Predicate:
             try:
                 pattern = re.compile(needle.encode("utf-8", "ignore"), re.IGNORECASE)
             except re.error as exc:
-                raise FilterError("Ошибка в регулярном выражении: {}".format(exc)) from exc
+                raise FilterError(f"Ошибка в регулярном выражении: {exc}") from exc
 
             def payload_predicate(packet: Packet) -> bool:
                 if transport and packet.transport != transport:
@@ -465,8 +465,8 @@ def _string_comparison(field: str, op: str, value: str) -> Predicate:
 
     if field not in STRING_FIELDS:
         raise FilterError(
-            "Поле '{}' не поддерживает contains/matches. Попробуйте http.host, "
-            "dns.qry.name, tls.sni, tcp contains …".format(field)
+            f"Поле '{field}' не поддерживает contains/matches. Попробуйте http.host, "
+            "dns.qry.name, tls.sni, tcp contains …"
         )
 
     getter = STRING_FIELDS[field]
@@ -479,7 +479,7 @@ def _string_comparison(field: str, op: str, value: str) -> Predicate:
         try:
             pattern = re.compile(needle, re.IGNORECASE)
         except re.error as exc:
-            raise FilterError("Ошибка в регулярном выражении: {}".format(exc)) from exc
+            raise FilterError(f"Ошибка в регулярном выражении: {exc}") from exc
 
         def string_predicate(packet: Packet) -> bool:
             return bool(pattern.search(getter(packet)))
@@ -506,7 +506,7 @@ def _comparison(field: str, op: str, values: list[str]) -> Predicate:
         if op == "!=":
             return lambda packet: getter(packet).lower() not in wanted
         raise FilterError("Для строковых полей поддерживаются ==, !=, contains, matches")
-    raise FilterError("Неизвестное поле фильтра: '{}'".format(field))
+    raise FilterError(f"Неизвестное поле фильтра: '{field}'")
 
 
 def _ip_comparison(field: str, op: str, values: list[str]) -> Predicate:
@@ -543,12 +543,12 @@ def _ip_comparison(field: str, op: str, values: list[str]) -> Predicate:
 def _port_comparison(field: str, op: str, values: list[str]) -> Predicate:
     compare = PORT_OPS.get(op)
     if compare is None:
-        raise FilterError("Неизвестное сравнение для порта: '{}'".format(op))
+        raise FilterError(f"Неизвестное сравнение для порта: '{op}'")
 
     try:
         wanted = [int(value) for value in values]
     except ValueError as exc:
-        raise FilterError("Порт должен быть числом: {}".format(values)) from exc
+        raise FilterError(f"Порт должен быть числом: {values}") from exc
 
     transport = ""
     if field.startswith("tcp"):

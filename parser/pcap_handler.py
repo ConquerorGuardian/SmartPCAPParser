@@ -14,9 +14,9 @@ Wireshark/tshark.
 """
 
 import csv
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional
 
 from .matcher import FilterError, compile_filter
 from .pcap_reader import Packet, PcapError, read_packets
@@ -70,7 +70,7 @@ class PcapResult:
     matched_packets: int = 0        # пакетов, прошедших фильтр
     rows: list[PacketRow] = field(default_factory=list)   # превью
     filter_applied: str = ""
-    error: Optional[str] = None
+    error: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -92,7 +92,7 @@ class PcapHandler:
         self,
         pcap_path: str | Path,
         display_filter: str,
-        limit: Optional[int] = None,
+        limit: int | None = None,
     ) -> PcapResult:
         """
         Читает файл, применяет фильтр и возвращает превью строк.
@@ -115,7 +115,7 @@ class PcapHandler:
         return self.apply(packets, display_filter, limit=limit)
 
     def load(self, pcap_path: str | Path,
-             keep_payload: bool = False) -> tuple[list[Packet], Optional[str]]:
+             keep_payload: bool = False) -> tuple[list[Packet], str | None]:
         """
         Читает файл и возвращает (пакеты, ошибка).
 
@@ -135,7 +135,7 @@ class PcapHandler:
         self,
         packets: list[Packet],
         display_filter: str,
-        limit: Optional[int] = None,
+        limit: int | None = None,
     ) -> PcapResult:
         """Применяет фильтр к уже прочитанным пакетам."""
         display_filter = (display_filter or "").strip()

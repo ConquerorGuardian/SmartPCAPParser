@@ -17,19 +17,15 @@ Natural Language Filter Engine (RegEx-based).
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .validators import (
     ValidationError,
-    is_valid_ipv4,
     is_valid_mac_address,
-    is_valid_port,
     validate_ipv4,
     validate_ipv6,
     validate_mac_address,
     validate_port,
 )
-
 
 # ---------------------------------------------------------------------------
 # Словари синонимов (Natural Language Keywords)
@@ -412,8 +408,8 @@ class ExtractedEntity:
     entity_type: str              # 'ip', 'port', 'port_range', 'mac', 'protocol'
     raw_value: str                # исходная строка из команды
     normalized_value: str         # нормализованное значение
-    direction: Optional[str] = None  # 'src' / 'dst' (для ip и port)
-    protocol_filter: Optional[str] = None  # фильтр протокола (http, dns...)
+    direction: str | None = None  # 'src' / 'dst' (для ip и port)
+    protocol_filter: str | None = None  # фильтр протокола (http, dns...)
     negated: bool = False         # «не http», «кроме 8.8.8.8»
 
 
@@ -544,7 +540,7 @@ class NaturalLanguageFilterEngine:
         self._extract_macs(text, query)
 
     @staticmethod
-    def _direction_before(text: str, position: int) -> Optional[str]:
+    def _direction_before(text: str, position: int) -> str | None:
         """
         Определяет направление по словам перед значением.
 
@@ -650,7 +646,7 @@ class NaturalLanguageFilterEngine:
 
         triggers = [
             word for word in HOST_WORDS
-            if re.search(r"(?<![\w.-]){}(?![\w.-])".format(re.escape(word)), text)
+            if re.search(rf"(?<![\w.-]){re.escape(word)}(?![\w.-])", text)
         ]
         if not triggers:
             return
@@ -750,7 +746,7 @@ class NaturalLanguageFilterEngine:
                     self._add_port(item, direction, query, negated)
 
     @staticmethod
-    def _add_port(port_str: str, direction: Optional[str], query: ParsedQuery,
+    def _add_port(port_str: str, direction: str | None, query: ParsedQuery,
                   negated: bool = False) -> None:
         try:
             normalized = validate_port(port_str)
@@ -765,7 +761,7 @@ class NaturalLanguageFilterEngine:
         ))
 
     @staticmethod
-    def _add_port_range(start_str: str, end_str: str, direction: Optional[str],
+    def _add_port_range(start_str: str, end_str: str, direction: str | None,
                         query: ParsedQuery, negated: bool = False) -> None:
         try:
             start_port = validate_port(start_str)
@@ -776,8 +772,8 @@ class NaturalLanguageFilterEngine:
             start_port, end_port = end_port, start_port
         query.add_entity(ExtractedEntity(
             entity_type="port_range",
-            raw_value="{}-{}".format(start_str, end_str),
-            normalized_value="{}-{}".format(start_port, end_port),
+            raw_value=f"{start_str}-{end_str}",
+            normalized_value=f"{start_port}-{end_port}",
             direction=direction,
             negated=negated,
         ))

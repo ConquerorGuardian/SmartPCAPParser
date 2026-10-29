@@ -26,11 +26,10 @@
 
 import queue
 import re
-import threading
-from pathlib import Path
 import sys
-
+import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
@@ -40,16 +39,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from parser.engine import NaturalLanguageFilterEngine            # noqa: E402
-from parser.filters import generate_filter                       # noqa: E402
-from parser.matcher import FilterError, compile_filter           # noqa: E402
+from gui.chart import TrafficChart  # noqa: E402
+from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
+from parser.filters import generate_filter  # noqa: E402
+from parser.matcher import FilterError, compile_filter  # noqa: E402
 from parser.pcap_handler import COLUMNS, PcapHandler, PcapResult  # noqa: E402
-from parser.pcap_reader import read_payloads                     # noqa: E402
-from parser.validators import (                                  # noqa: E402
-    is_valid_ipv6,
-    is_valid_mac_address,
-)
-from parser.stats import (                                       # noqa: E402
+from parser.pcap_reader import read_payloads  # noqa: E402
+from parser.settings import load_settings, save_settings  # noqa: E402
+from parser.stats import (  # noqa: E402
     conversations,
     endpoints,
     format_bytes,
@@ -59,10 +56,7 @@ from parser.stats import (                                       # noqa: E402
     summary,
     timeline,
 )
-from parser.verdict import build_verdict, format_verdict          # noqa: E402
-from parser.settings import load_settings, save_settings          # noqa: E402
-from gui.chart import TrafficChart                               # noqa: E402
-from parser.streams import (                                     # noqa: E402
+from parser.streams import (  # noqa: E402
     MODE_HEX,
     MODE_TEXT,
     VIEW_BOTH,
@@ -75,6 +69,11 @@ from parser.streams import (                                     # noqa: E402
     render_stream,
     summarize,
 )
+from parser.validators import (  # noqa: E402
+    is_valid_ipv6,
+    is_valid_mac_address,
+)
+from parser.verdict import build_verdict, format_verdict  # noqa: E402
 
 APP_TITLE = "Smart PCAP Parser"
 APP_SUBTITLE = "Фильтры Wireshark обычными словами"
@@ -284,7 +283,7 @@ TCP_FLAGS = [
 
 def format_count(value: int) -> str:
     """9123 -> «9 123»: в статусе так читается легче."""
-    return "{:,}".format(value).replace(",", " ")
+    return f"{value:,}".replace(",", " ")
 
 
 def table_limit(total: int) -> int:
@@ -319,12 +318,12 @@ def hex_dump(data: bytes, width: int = 16) -> str:
     lines = []
     for offset in range(0, len(data), width):
         chunk = data[offset:offset + width]
-        hex_part = " ".join("{:02x}".format(byte) for byte in chunk)
+        hex_part = " ".join(f"{byte:02x}" for byte in chunk)
         text_part = "".join(
             chr(byte) if 32 <= byte < 127 else "." for byte in chunk
         )
         lines.append(
-            "{:08x}  {:<47}  {}".format(offset, hex_part, text_part)
+            f"{offset:08x}  {hex_part:<47}  {text_part}"
         )
     return "\n".join(lines)
 
@@ -655,7 +654,7 @@ class SmartPcapApp(ctk.CTk):
         self.pcap_path: Path | None = None
         self.current_filter = ""
         self.current_result: PcapResult | None = None
-        self._load_queue: "queue.Queue" = queue.Queue()
+        self._load_queue: queue.Queue = queue.Queue()
         self._busy = False
         self._history: list[str] = list(self.settings["history"])
         self._last_dir = self.settings["last_dir"]
@@ -897,15 +896,11 @@ class SmartPcapApp(ctk.CTk):
         shown = len(self._rows)
         if shown < len(self.packets):
             self._set_status(
-                "Фильтр снят: показаны первые {} из {} пакетов.".format(
-                    format_count(shown), format_count(len(self.packets))
-                )
+                f"Фильтр снят: показаны первые {format_count(shown)} из {format_count(len(self.packets))} пакетов."
             )
         else:
             self._set_status(
-                "Фильтр снят: показаны все пакеты файла ({}).".format(
-                    format_count(len(self.packets))
-                )
+                f"Фильтр снят: показаны все пакеты файла ({format_count(len(self.packets))})."
             )
 
     def _update_command_hint(self, event=None) -> None:
@@ -932,7 +927,7 @@ class SmartPcapApp(ctk.CTk):
             self.hint_label.configure(text=reason, text_color=THEME["danger"])
         elif filter_string:
             self.hint_label.configure(
-                text="→ {}".format(filter_string), text_color=THEME["accent"]
+                text=f"→ {filter_string}", text_color=THEME["accent"]
             )
         else:
             self.hint_label.configure(
@@ -947,7 +942,7 @@ class SmartPcapApp(ctk.CTk):
         for match in re.finditer(r"\d{1,3}(?:\.\d{1,3}){3}", text):
             address = match.group()
             if any(int(part) > 255 for part in address.split(".")):
-                return "Адрес {} некорректен: каждый октет 0–255.".format(address)
+                return f"Адрес {address} некорректен: каждый октет 0–255."
 
         for token in re.split(r"[\s,;()]+", text):
             candidate = token.strip(".,;!?«»\"'")
@@ -956,12 +951,12 @@ class SmartPcapApp(ctk.CTk):
             if is_valid_mac_address(candidate):
                 continue
             if not is_valid_ipv6(candidate):
-                return "Адрес {} похож на IPv6, но записан с ошибкой.".format(candidate)
+                return f"Адрес {candidate} похож на IPv6, но записан с ошибкой."
 
         for match in re.finditer(r"\b\d{1,5}\b", text):
             value = int(match.group())
             if not 1 <= value <= 65535:
-                return "Порт {} вне диапазона 1–65535.".format(value)
+                return f"Порт {value} вне диапазона 1–65535."
 
         return ""
 
@@ -1293,7 +1288,7 @@ class SmartPcapApp(ctk.CTk):
 
             ctk.CTkLabel(
                 row,
-                text="{} — {}".format(finding.title, finding.detail),
+                text=f"{finding.title} — {finding.detail}",
                 anchor="w",
                 justify="left",
                 wraplength=880,
@@ -1318,7 +1313,7 @@ class SmartPcapApp(ctk.CTk):
         if hidden > 0:
             ctk.CTkLabel(
                 self.verdict_findings,
-                text="… и ещё {} — откройте «Подробнее»".format(hidden),
+                text=f"… и ещё {hidden} — откройте «Подробнее»",
                 anchor="w",
                 font=ctk.CTkFont(family="Segoe UI", size=11),
                 text_color=THEME["muted"],
@@ -1479,8 +1474,8 @@ class SmartPcapApp(ctk.CTk):
             )
 
         for protocol, (even, odd) in PROTOCOL_TINTS.items():
-            self.tree.tag_configure("{}_even".format(protocol), background=even)
-            self.tree.tag_configure("{}_odd".format(protocol), background=odd)
+            self.tree.tag_configure(f"{protocol}_even", background=even)
+            self.tree.tag_configure(f"{protocol}_odd", background=odd)
         self.tree.tag_configure("other_even", background=THEME["row_alt"])
         self.tree.tag_configure("other_odd", background=THEME["row"])
 
@@ -1816,7 +1811,7 @@ class SmartPcapApp(ctk.CTk):
 
         parents: dict[str, str] = {}
         for row in protocol_hierarchy(packets):
-            values = (row.packets, format_bytes(row.bytes), "{:.1f}%".format(row.share))
+            values = (row.packets, format_bytes(row.bytes), f"{row.share:.1f}%")
             if row.level == 0:
                 node = self.proto_tree.insert("", "end", text=row.name, values=values)
                 if row.name != "Всего":
@@ -1838,7 +1833,7 @@ class SmartPcapApp(ctk.CTk):
             self.conv_tree.insert(
                 "",
                 "end",
-                text="{}  ↔  {}".format(conversation.endpoint_a, conversation.endpoint_b),
+                text=f"{conversation.endpoint_a}  ↔  {conversation.endpoint_b}",
                 values=(conversation.total_packets, format_bytes(conversation.total_bytes)),
             )
 
@@ -1915,8 +1910,8 @@ class SmartPcapApp(ctk.CTk):
         self._set_busy(False)
 
         if error:
-            self._set_status("Не удалось прочитать файл: {}".format(error))
-            messagebox.showerror(APP_TITLE, "Не удалось прочитать файл:\n\n{}".format(error))
+            self._set_status(f"Не удалось прочитать файл: {error}")
+            messagebox.showerror(APP_TITLE, f"Не удалось прочитать файл:\n\n{error}")
             return
 
         self.pcap_path = path
@@ -1925,13 +1920,12 @@ class SmartPcapApp(ctk.CTk):
         self.current_filter = ""
         self._set_filter_text("")
         self.file_label.configure(text=path.name)
-        self.packet_label.configure(text="{} пакетов · {}".format(
-            len(packets), path.suffix))
+        self.packet_label.configure(text=f"{len(packets)} пакетов · {path.suffix}")
 
         if hasattr(self, "empty_state"):
             self.empty_state.grid_remove()
 
-        self._set_status("Читаю {} пакетов...".format(format_count(len(packets))))
+        self._set_status(f"Читаю {format_count(len(packets))} пакетов...")
         limit = table_limit(len(packets))
         self._render(self.handler.apply(packets, "", limit=limit))
         self._refresh_verdict()
@@ -1943,11 +1937,11 @@ class SmartPcapApp(ctk.CTk):
             big = False
 
         shown = len(self._rows)
-        status = "Файл загружен: {} пакетов.".format(format_count(len(packets)))
+        status = f"Файл загружен: {format_count(len(packets))} пакетов."
         if shown < len(packets):
             status += (
-                " В таблице первые {} — нажмите «Показать все» или задайте "
-                "фильтр.".format(format_count(shown))
+                f" В таблице первые {format_count(shown)} — нажмите «Показать все» или задайте "
+                "фильтр."
             )
         else:
             status += " Показаны все. Введите команду, например: «покажи http трафик»."
@@ -1996,7 +1990,7 @@ class SmartPcapApp(ctk.CTk):
         limit = table_limit(len(self.packets))
         result = self.handler.apply(self.packets, filter_string, limit=limit)
         if result.error:
-            self._set_status("Ошибка фильтра: {}".format(result.error))
+            self._set_status(f"Ошибка фильтра: {result.error}")
             return
 
         self._render(result)
@@ -2004,26 +1998,16 @@ class SmartPcapApp(ctk.CTk):
 
         if result.matched_packets == 0:
             self._set_status(
-                "По фильтру \"{}\" ничего не найдено. Проверьте адрес или порт.".format(
-                    filter_string
-                )
+                f"По фильтру \"{filter_string}\" ничего не найдено. Проверьте адрес или порт."
             )
         elif result.matched_packets > len(result.rows):
             self._set_status(
-                "Найдено {} из {} пакетов, в таблице первые {}. "
-                "Нажмите \"Показать все\", чтобы увидеть остальные.".format(
-                    format_count(result.matched_packets),
-                    format_count(result.total_packets),
-                    format_count(len(result.rows)),
-                )
+                f"Найдено {format_count(result.matched_packets)} из {format_count(result.total_packets)} пакетов, в таблице первые {format_count(len(result.rows))}. "
+                "Нажмите \"Показать все\", чтобы увидеть остальные."
             )
         else:
             self._set_status(
-                "Найдено {} из {} пакетов. Фильтр: {}.".format(
-                    format_count(result.matched_packets),
-                    format_count(result.total_packets),
-                    filter_string,
-                )
+                f"Найдено {format_count(result.matched_packets)} из {format_count(result.total_packets)} пакетов. Фильтр: {filter_string}."
             )
 
     def _run_quick_filter(self, command: str) -> None:
@@ -2079,18 +2063,16 @@ class SmartPcapApp(ctk.CTk):
         filter_string = self.current_filter
         result = self.handler.apply(self.packets, filter_string, limit=-1)
         if result.error:
-            self._set_status("Ошибка фильтра: {}".format(result.error))
+            self._set_status(f"Ошибка фильтра: {result.error}")
             return
 
         self._render(result)
         if filter_string:
             self._set_status(
-                "Показаны все совпадения: {} из {} пакетов. Фильтр: {}.".format(
-                    result.matched_packets, result.total_packets, filter_string
-                )
+                f"Показаны все совпадения: {result.matched_packets} из {result.total_packets} пакетов. Фильтр: {filter_string}."
             )
         else:
-            self._set_status("Показаны все пакеты в файле: {}.".format(result.total_packets))
+            self._set_status(f"Показаны все пакеты в файле: {result.total_packets}.")
 
     def _export_csv(self) -> None:
         if not self.packets:
@@ -2102,7 +2084,7 @@ class SmartPcapApp(ctk.CTk):
         # «нашёл 12 строк» и «в файле 200» — неприятный сюрприз.
         result = self.handler.apply(self.packets, self.current_filter, limit=-1)
         if result.error:
-            self._set_status("Ошибка фильтра: {}".format(result.error))
+            self._set_status(f"Ошибка фильтра: {result.error}")
             return
 
         rows = result.rows
@@ -2116,7 +2098,7 @@ class SmartPcapApp(ctk.CTk):
 
         default_name = "smartpcap_result.csv"
         if self.pcap_path is not None:
-            default_name = "{}_result.csv".format(self.pcap_path.stem)
+            default_name = f"{self.pcap_path.stem}_result.csv"
 
         path = filedialog.asksaveasfilename(
             title="Сохранить результат",
@@ -2131,18 +2113,16 @@ class SmartPcapApp(ctk.CTk):
         try:
             self.handler.export_rows_to_csv(rows, path)
         except OSError as exc:
-            messagebox.showerror(APP_TITLE, "Не удалось сохранить файл:\n\n{}".format(exc))
+            messagebox.showerror(APP_TITLE, f"Не удалось сохранить файл:\n\n{exc}")
             return
 
         if self._search_text:
             self._set_status(
-                "Сохранено {} строк (поиск «{}»): {}".format(
-                    format_count(len(rows)), self._search_text, path
-                )
+                f"Сохранено {format_count(len(rows))} строк (поиск «{self._search_text}»): {path}"
             )
         else:
             self._set_status(
-                "Сохранено {} строк: {}".format(format_count(len(rows)), path)
+                f"Сохранено {format_count(len(rows))} строк: {path}"
             )
 
     # ------------------------------------------------------------------
@@ -2187,13 +2167,11 @@ class SmartPcapApp(ctk.CTk):
         total = len(self._rows)
         if text:
             self.search_label.configure(
-                text="{} из {}".format(shown, total),
+                text=f"{shown} из {total}",
                 text_color=THEME["accent"] if shown else THEME["danger"],
             )
             self._set_status(
-                "Поиск «{}»: {} совпадений из {} строк. Esc — снять поиск.".format(
-                    text, shown, total
-                )
+                f"Поиск «{text}»: {shown} совпадений из {total} строк. Esc — снять поиск."
             )
         else:
             self.search_label.configure(text="")
@@ -2222,7 +2200,7 @@ class SmartPcapApp(ctk.CTk):
         for index, row in enumerate(self._sorted_rows()):
             transport = (row.protocol or "").upper()
             tag = transport if transport in PROTOCOL_TINTS else "other"
-            tags = ("{}_odd".format(tag) if index % 2 else "{}_even".format(tag),)
+            tags = (f"{tag}_odd" if index % 2 else f"{tag}_even",)
             self.tree.insert("", "end", values=(
                 row.frame,
                 row.time,
@@ -2296,7 +2274,7 @@ class SmartPcapApp(ctk.CTk):
 
         self.clipboard_clear()
         self.clipboard_append(self.current_filter)
-        self._set_status("Фильтр скопирован в буфер обмена: {}".format(self.current_filter))
+        self._set_status(f"Фильтр скопирован в буфер обмена: {self.current_filter}")
 
     def _copy_selected_row(self, event=None) -> None:
         selection = self.tree.selection()
@@ -2344,11 +2322,11 @@ class SmartPcapApp(ctk.CTk):
 
         packet = self.packet_index.get(frame)
         if packet is None:
-            self._set_status("Пакет {} не найден в загруженном файле.".format(frame))
+            self._set_status(f"Пакет {frame} не найден в загруженном файле.")
             return
 
         window = ctk.CTkToplevel(self)
-        window.title("Пакет {} — детали".format(frame))
+        window.title(f"Пакет {frame} — детали")
         window.geometry("820x680")
         window.minsize(640, 460)
         window.transient(self)
@@ -2402,7 +2380,7 @@ class SmartPcapApp(ctk.CTk):
 
         add_layer("Frame", [
             ("Номер кадра", packet.number),
-            ("Время, с", "{:.6f}".format(packet.timestamp)),
+            ("Время, с", f"{packet.timestamp:.6f}"),
             ("Длина, байт", packet.length),
             ("Длина в сети, байт", packet.wire_length),
             ("Пакетов в файле", len(self.packets)),
@@ -2426,7 +2404,7 @@ class SmartPcapApp(ctk.CTk):
                 ("Acknowledgment", packet.tcp_ack or None),
                 ("Окно", packet.tcp_window or None),
                 ("Флаги", decode_tcp_flags(packet.tcp_flags)),
-                ("Флаги, hex", "0x{:03x}".format(packet.tcp_flags)),
+                ("Флаги, hex", f"0x{packet.tcp_flags:03x}"),
                 ("Данные, байт", len(packet.payload)),
                 ("Приложение", packet.app),
             ])
@@ -2474,9 +2452,7 @@ class SmartPcapApp(ctk.CTk):
             if len(packet.payload) > HEX_LIMIT:
                 payload_box.insert(
                     "end",
-                    "\n\n… показаны первые {} КБ из {}".format(
-                        HEX_LIMIT // 1024, format_bytes(len(packet.payload))
-                    ),
+                    f"\n\n… показаны первые {HEX_LIMIT // 1024} КБ из {format_bytes(len(packet.payload))}",
                 )
         else:
             payload_box.insert(
@@ -2538,28 +2514,28 @@ class SmartPcapApp(ctk.CTk):
             menu.add_separator()
             if source and source != "?":
                 menu.add_command(
-                    label="Только от {}".format(source),
+                    label=f"Только от {source}",
                     command=lambda value=source: self._filter_by("src", value),
                 )
             if destination and destination != "?":
                 menu.add_command(
-                    label="Только к {}".format(destination),
+                    label=f"Только к {destination}",
                     command=lambda value=destination: self._filter_by("dst", value),
                 )
             if source and source != "?" and source != destination:
                 menu.add_command(
-                    label="Фильтр по адресу {}".format(source),
+                    label=f"Фильтр по адресу {source}",
                     command=lambda value=source: self._filter_by("addr", value),
                 )
             ports = [port for port in (src_port, dst_port) if port]
             for port in dict.fromkeys(ports):
                 menu.add_command(
-                    label="Только порт {}".format(port),
+                    label=f"Только порт {port}",
                     command=lambda value=port: self._filter_by("port", value),
                 )
             if protocol:
                 menu.add_command(
-                    label="Только {}".format(protocol),
+                    label=f"Только {protocol}",
                     command=lambda value=protocol: self._filter_by("proto", value),
                 )
 
@@ -2586,23 +2562,23 @@ class SmartPcapApp(ctk.CTk):
 
         if kind == "src":
             command = (
-                "покажи пакеты с мак адресом {}".format(value) if mac_like
-                else "покажи пакеты от {}".format(value)
+                f"покажи пакеты с мак адресом {value}" if mac_like
+                else f"покажи пакеты от {value}"
             )
         elif kind == "dst":
             command = (
-                "покажи пакеты с мак адресом {}".format(value) if mac_like
-                else "покажи пакеты к {}".format(value)
+                f"покажи пакеты с мак адресом {value}" if mac_like
+                else f"покажи пакеты к {value}"
             )
         elif kind == "addr":
             command = (
-                "покажи пакеты с мак адресом {}".format(value) if mac_like
-                else "покажи пакеты с айпи {}".format(value)
+                f"покажи пакеты с мак адресом {value}" if mac_like
+                else f"покажи пакеты с айпи {value}"
             )
         elif kind == "port":
-            command = "покажи пакеты на порт {}".format(value)
+            command = f"покажи пакеты на порт {value}"
         elif kind == "proto":
-            command = "покажи {} трафик".format(value.lower())
+            command = f"покажи {value.lower()} трафик"
         else:
             return
 
@@ -2627,7 +2603,7 @@ class SmartPcapApp(ctk.CTk):
                 return
 
         self._set_status(
-            "Подгружаю данные потока из файла ({} кадров)...".format(len(frames))
+            f"Подгружаю данные потока из файла ({len(frames)} кадров)..."
         )
         self.update_idletasks()
 
@@ -2642,9 +2618,7 @@ class SmartPcapApp(ctk.CTk):
         loaded = sum(len(data) for data in payloads.values())
         if loaded >= STREAM_PAYLOAD_LIMIT:
             self._set_status(
-                "Поток большой: показаны первые {} данных.".format(
-                    format_bytes(STREAM_PAYLOAD_LIMIT)
-                )
+                f"Поток большой: показаны первые {format_bytes(STREAM_PAYLOAD_LIMIT)} данных."
             )
 
     def _follow_selected_stream(self) -> None:
@@ -2670,13 +2644,13 @@ class SmartPcapApp(ctk.CTk):
                 stream = follow_datagram_flow(self.packets, frame)
                 if stream is None:
                     self._set_status(
-                        "Пакет {} — UDP, но обмен для него не собрался.".format(frame)
+                        f"Пакет {frame} — UDP, но обмен для него не собрался."
                     )
                     return
             else:
                 self._set_status(
-                    "Пакет {} — не TCP и не UDP, поток для него не "
-                    "собирается.".format(frame)
+                    f"Пакет {frame} — не TCP и не UDP, поток для него не "
+                    "собирается."
                 )
                 return
 
@@ -2693,11 +2667,8 @@ class SmartPcapApp(ctk.CTk):
 
         if stream.total_bytes == 0:
             self._set_status(
-                "В потоке {} <-> {} нет данных: только служебные пакеты "
-                "(SYN/FIN/RST) или данные не попали в захват.".format(
-                    format_endpoint(stream.client),
-                    format_endpoint(stream.server),
-                )
+                f"В потоке {format_endpoint(stream.client)} <-> {format_endpoint(stream.server)} нет данных: только служебные пакеты "
+                "(SYN/FIN/RST) или данные не попали в захват."
             )
             return
 
@@ -2708,11 +2679,7 @@ class SmartPcapApp(ctk.CTk):
         kind = getattr(stream, "kind", "TCP")
         window = ctk.CTkToplevel(self)
         window.title(
-            "Поток {}: {} <-> {}".format(
-                kind,
-                format_endpoint(stream.client),
-                format_endpoint(stream.server),
-            )
+            f"Поток {kind}: {format_endpoint(stream.client)} <-> {format_endpoint(stream.server)}"
         )
         window.geometry("1020x700")
         window.minsize(720, 480)
@@ -2722,13 +2689,8 @@ class SmartPcapApp(ctk.CTk):
         header = ctk.CTkLabel(
             window,
             text=(
-                "Пакетов {} · длительность {:.3f} с · клиент -> сервер {} байт · "
-                "сервер -> клиент {} байт"
-            ).format(
-                len(stream.packets),
-                stream.duration,
-                stream.client_to_server.stream.length,
-                stream.server_to_client.stream.length,
+                f"Пакетов {len(stream.packets)} · длительность {stream.duration:.3f} с · клиент -> сервер {stream.client_to_server.stream.length} байт · "
+                f"сервер -> клиент {stream.server_to_client.stream.length} байт"
             ),
             font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=THEME["muted"],
@@ -2808,15 +2770,12 @@ class SmartPcapApp(ctk.CTk):
             window.after(1500, lambda: copy_button.configure(text="Копировать"))
 
         def save_text() -> None:
-            stem = "stream_{}_{}".format(
-                _safe_stem(format_endpoint(stream.client)),
-                _safe_stem(format_endpoint(stream.server)),
-            )
+            stem = f"stream_{_safe_stem(format_endpoint(stream.client))}_{_safe_stem(format_endpoint(stream.server))}"
             path = filedialog.asksaveasfilename(
                 parent=window,
                 title="Сохранить поток",
                 defaultextension=".txt",
-                initialfile="{}.txt".format(stem),
+                initialfile=f"{stem}.txt",
                 filetypes=[("Текст", "*.txt"), ("Все файлы", "*.*")],
             )
             if not path:
@@ -2828,11 +2787,11 @@ class SmartPcapApp(ctk.CTk):
             except OSError as exc:
                 messagebox.showerror(
                     APP_TITLE,
-                    "Не удалось сохранить файл:\n\n{}".format(exc),
+                    f"Не удалось сохранить файл:\n\n{exc}",
                     parent=window,
                 )
                 return
-            self._set_status("Поток сохранён: {}".format(path))
+            self._set_status(f"Поток сохранён: {path}")
 
         copy_button = ctk.CTkButton(
             buttons,

@@ -10,8 +10,8 @@
 «показать вот это».
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Sequence
 
 from .stats import conversations, format_bytes, format_duration, hosts, summary
 
@@ -131,7 +131,6 @@ def detect_unanswered_syn(packets: Sequence) -> list[Finding]:
         if (packet.protocol or "").upper() != "TCP":
             continue
 
-        flags = _tcp_flags(packet)
         if _has_flag(packet, TCP_SYN_ACK):
             answered.add((packet.src_ip, packet.src_port))
         elif _has_flag(packet, TCP_SYN) and not _has_flag(packet, TCP_ACK):
@@ -156,11 +155,11 @@ def detect_unanswered_syn(packets: Sequence) -> list[Finding]:
     return [Finding(
         title="Подключения без ответа",
         detail=(
-            "{} попыток подключиться, ответа нет. Чаще всего у "
-            "{} портов — похоже на сканирование.".format(total_silent, len(silent))
+            f"{total_silent} попыток подключиться, ответа нет. Чаще всего у "
+            f"{len(silent)} портов — похоже на сканирование."
         ),
         severity=severity,
-        command="покажи пакеты к {}".format(address),
+        command=f"покажи пакеты к {address}",
     )]
 
 
@@ -174,11 +173,11 @@ def detect_resets(packets: Sequence) -> list[Finding]:
         return []
 
     targets = sorted({
-        "{}:{}".format(packet.dst_ip, packet.dst_port)
+        f"{packet.dst_ip}:{packet.dst_port}"
         for packet in resets
         if packet.dst_ip
     })
-    detail = "{} соединений сброшено (RST)".format(len(resets))
+    detail = f"{len(resets)} соединений сброшено (RST)"
     if targets:
         detail += ". Больше всего достаётся {}".format(", ".join(targets[:2]))
 
@@ -205,9 +204,7 @@ def detect_dns_gap(packets: Sequence) -> list[Finding]:
 
     return [Finding(
         title="DNS без ответа",
-        detail="{} запросов и только {} ответов. Часть имён не разрешилась.".format(
-            len(queries), len(answers)
-        ),
+        detail=f"{len(queries)} запросов и только {len(answers)} ответов. Часть имён не разрешилась.",
         severity="warning" if not answers else "info",
         command="покажи dns трафик",
     )]
@@ -222,8 +219,8 @@ def detect_arp_noise(packets: Sequence) -> list[Finding]:
     share = 100.0 * len(arp) / len(packets)
     return [Finding(
         title="Много ARP",
-        detail="{} ARP-пакетов — {:.0f}% трафика. Проверьте конфликт адресов "
-               "или петлю в сети.".format(len(arp), share),
+        detail=f"{len(arp)} ARP-пакетов — {share:.0f}% трафика. Проверьте конфликт адресов "
+               "или петлю в сети.",
         severity="warning",
         command="покажи arp трафик",
     )]
@@ -243,11 +240,11 @@ def detect_watch_ports(packets: Sequence) -> list[Finding]:
 
     for port, count in sorted(seen.items(), key=lambda item: -item[1])[:3]:
         findings.append(Finding(
-            title="Обращения к {}".format(WATCH_PORTS[port]),
-            detail="{} пакетов из локальной сети на порт {} — сервис обычно "
-                   "не должен торчать наружу.".format(count, port),
+            title=f"Обращения к {WATCH_PORTS[port]}",
+            detail=f"{count} пакетов из локальной сети на порт {port} — сервис обычно "
+                   "не должен торчать наружу.",
             severity="warning" if port in (23, 445, 3389) else "info",
-            command="покажи пакеты на порт {}".format(port),
+            command=f"покажи пакеты на порт {port}",
         ))
     return findings
 
@@ -258,9 +255,7 @@ def detect_undecodable(packets: Sequence) -> list[Finding]:
     if not broken or len(broken) < UNDECODABLE_SHARE * len(packets):
         return []
 
-    detail = "{} из {} пакетов не разобраны — этот тип кадра не поддерживается.".format(
-        len(broken), len(packets)
-    )
+    detail = f"{len(broken)} из {len(packets)} пакетов не разобраны — этот тип кадра не поддерживается."
     hint = next((packet.info for packet in broken if packet.info), "")
     if hint:
         detail += " " + hint.rstrip(".") + "."
@@ -301,7 +296,7 @@ def detect_port_scan(packets: Sequence) -> list[Finding]:
                    ", ".join(str(port) for port in sorted(ports)[:5]),
                ),
         severity="critical" if len(ports) >= SCAN_CRITICAL_PORTS else "warning",
-        command="покажи пакеты к {}".format(target),
+        command=f"покажи пакеты к {target}",
     )]
 
 
@@ -316,7 +311,7 @@ def detect_icmp_errors(packets: Sequence) -> list[Finding]:
         return []
 
     hosts = sorted({packet.src_ip for packet in errors if packet.src_ip})
-    detail = "{} ICMP-ошибок: сеть или адресат недоступны".format(len(errors))
+    detail = f"{len(errors)} ICMP-ошибок: сеть или адресат недоступны"
     if hosts:
         detail += " (отвечают: {})".format(", ".join(hosts[:2]))
     return [Finding(
@@ -353,10 +348,8 @@ def detect_broadcast_storm(packets: Sequence) -> list[Finding]:
 
     return [Finding(
         title="Много широковещательного трафика",
-        detail="{} из {} кадров ({:.0f}%) — broadcast/multicast. Обычно это "
-               "шум Discovery-протоколов или петля.".format(
-                   len(broadcast), len(packets), share * 100
-               ),
+        detail=f"{len(broadcast)} из {len(packets)} кадров ({share * 100:.0f}%) — broadcast/multicast. Обычно это "
+               "шум Discovery-протоколов или петля.",
         severity="warning",
         command="покажи arp трафик",
     )]
@@ -387,11 +380,9 @@ def detect_top_talker(packets: Sequence) -> list[Finding]:
 
     return [Finding(
         title="Самый активный узел",
-        detail="{} отправил {} пакетов и {:.0f}% всех байт. Начните с него.".format(
-            address, count, share * 100
-        ),
+        detail=f"{address} отправил {count} пакетов и {share * 100:.0f}% всех байт. Начните с него.",
         severity="info",
-        command="покажи пакеты от {}".format(address),
+        command=f"покажи пакеты от {address}",
     )]
 
 
@@ -465,17 +456,13 @@ def _build_overview(packets: Sequence, data: dict) -> str:
         counts[name] = counts.get(name, 0) + 1
 
     top = sorted(counts.items(), key=lambda item: -item[1])[:3]
-    parts = ["{} {}".format(name, count) for name, count in top]
+    parts = [f"{name} {count}" for name, count in top]
     text = "Больше всего: {}.".format(", ".join(parts))
 
     pairs = conversations(packets, limit=1)
     if pairs:
         conversation = pairs[0]
-        text += " Активнее всех общались {} и {} — {} пакетов.".format(
-            conversation.endpoint_a,
-            conversation.endpoint_b,
-            conversation.total_packets,
-        )
+        text += f" Активнее всех общались {conversation.endpoint_a} и {conversation.endpoint_b} — {conversation.total_packets} пакетов."
 
     if data["addresses"]:
         text += " Узлов в файле: {}.".format(data["addresses"])
@@ -496,8 +483,8 @@ def format_verdict(verdict: Verdict) -> str:
         lines.extend([verdict.overview, ""])
 
     for finding in verdict.findings:
-        lines.append("• {} — {}".format(finding.title, finding.detail))
+        lines.append(f"• {finding.title} — {finding.detail}")
         if finding.command:
-            lines.append("  команда: {}".format(finding.command))
+            lines.append(f"  команда: {finding.command}")
 
     return "\n".join(lines).strip()

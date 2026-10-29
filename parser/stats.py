@@ -5,8 +5,8 @@
 на выход — простые dataclass-строки, которые GUI только рисует.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +170,7 @@ def endpoint_label(packet, source: bool = True) -> str:
     port = packet.src_port if source else packet.dst_port
     if port is None:
         return address
-    return "{}:{}".format(address, port)
+    return f"{address}:{port}"
 
 
 def _safe_int(value) -> int:
@@ -356,18 +356,18 @@ def format_bytes(value: int) -> str:
     for unit in ("Б", "КБ", "МБ", "ГБ"):
         if size < 1024 or unit == "ГБ":
             if unit == "Б":
-                return "{:.0f} {}".format(size, unit)
-            return "{:.1f} {}".format(size, unit)
+                return f"{size:.0f} {unit}"
+            return f"{size:.1f} {unit}"
         size /= 1024.0
-    return "{:.1f} ГБ".format(size)
+    return f"{size:.1f} ГБ"
 
 
 def format_duration(seconds: float) -> str:
     """Длительность в удобном виде: 2.5 с, 3 мин 12 с."""
     if seconds < 60:
-        return "{:.3f} с".format(seconds)
+        return f"{seconds:.3f} с"
     minutes, rest = divmod(seconds, 60)
     if minutes < 60:
-        return "{:.0f} мин {:.0f} с".format(minutes, rest)
+        return f"{minutes:.0f} мин {rest:.0f} с"
     hours, minutes = divmod(minutes, 60)
-    return "{:.0f} ч {:.0f} мин".format(hours, minutes)
+    return f"{hours:.0f} ч {minutes:.0f} мин"

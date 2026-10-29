@@ -15,12 +15,13 @@
 Результат разбора — объекты Packet, из которых дальше строится таблица.
 """
 
-from dataclasses import dataclass
 import gzip
 import re
 import struct
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterator, Optional
+from typing import BinaryIO
 
 # ---------------------------------------------------------------------------
 # Константы
@@ -213,8 +214,8 @@ class Packet:
     dst_mac: str = ""
     src_ip: str = ""
     dst_ip: str = ""
-    src_port: Optional[int] = None
-    dst_port: Optional[int] = None
+    src_port: int | None = None
+    dst_port: int | None = None
     transport: str = ""         # TCP / UDP / ICMP / ARP
     protocol: str = ""          # то же, что transport (как колонка Protocol в Wireshark)
     app: str = ""               # прикладной протокол: HTTP / DNS / TLS / QUIC / SSH
@@ -243,7 +244,7 @@ class Packet:
     def has_ports(self) -> bool:
         return self.src_port is not None and self.dst_port is not None
 
-    def to_row(self, relative_time: Optional[float] = None) -> dict:
+    def to_row(self, relative_time: float | None = None) -> dict:
         """Строка для таблицы GUI. IP и порты — в отдельных колонках."""
         time_value = self.timestamp if relative_time is None else relative_time
         return {
@@ -324,7 +325,7 @@ class _Reassembler:
 
 
 def _format_mac(raw: bytes) -> str:
-    return ":".join("{:02x}".format(b) for b in raw)
+    return ":".join(f"{b:02x}" for b in raw)
 
 
 def _format_ipv4(raw: bytes) -> str:
@@ -332,7 +333,7 @@ def _format_ipv4(raw: bytes) -> str:
 
 
 def _format_ipv6(raw: bytes) -> str:
-    groups = ["{:02x}{:02x}".format(raw[i], raw[i + 1]) for i in range(0, 16, 2)]
+    groups = [f"{raw[i]:02x}{raw[i + 1]:02x}" for i in range(0, 16, 2)]
     # Простое сжатие подряд идущих нулевых групп (как в RFC 5952).
     best_start, best_len = -1, 0
     start = -1
@@ -350,7 +351,7 @@ def _format_ipv6(raw: bytes) -> str:
     if best_len > 1:
         head = ":".join(groups[:best_start])
         tail = ":".join(groups[best_start + best_len:])
-        return "{}::{}".format(head, tail)
+        return f"{head}::{tail}"
     return ":".join(groups)
 
 
@@ -359,7 +360,7 @@ def _tcp_flags(flags: int) -> str:
     return ",".join(names) if names else "None"
 
 
-def _detect_tcp_app(src_port: Optional[int], dst_port: Optional[int],
+def _detect_tcp_app(src_port: int | None, dst_port: int | None,
                     payload: bytes) -> str:
     """
     Прикладной протокол TCP по данным и портам.
@@ -540,7 +541,7 @@ def _decode_dns_name(payload: bytes, tcp: bool = False) -> str:
     return name if len(name) <= DNS_NAME_MAX else ""
 
 
-def _detect_udp_app(src_port: Optional[int], dst_port: Optional[int]) -> str:
+def _detect_udp_app(src_port: int | None, dst_port: int | None) -> str:
     """Прикладной протокол UDP по портам (443/udp — это QUIC, а не TLS)."""
     for port in (dst_port, src_port):
         if port in UDP_APP_PORTS:
@@ -588,14 +589,12 @@ def _decode_tcp(data: bytes, pkt: Packet, seg_len: int) -> None:
     elif pkt.app == "DNS":
         pkt.dns_name = _decode_dns_name(payload, tcp=True)
 
-    pkt.info = "{} -> {} [{}] Seq={} Len={}".format(
-        src_port, dst_port, _tcp_flags(flags), seq, payload_len
-    )
+    pkt.info = f"{src_port} -> {dst_port} [{_tcp_flags(flags)}] Seq={seq} Len={payload_len}"
     if pkt.app:
-        pkt.info = "{} {}".format(pkt.info, pkt.app)
+        pkt.info = f"{pkt.info} {pkt.app}"
     name = pkt.host or pkt.sni or pkt.dns_name
     if name:
-        pkt.info = "{} · {}".format(pkt.info, name)
+        pkt.info = f"{pkt.info} · {name}"
 
 
 def _decode_udp(data: bytes, pkt: Packet) -> None:
@@ -615,11 +614,11 @@ def _decode_udp(data: bytes, pkt: Packet) -> None:
     pkt.payload = payload          # тела UDP нужны для «Поток UDP»
     if pkt.app == "DNS":
         pkt.dns_name = _decode_dns_name(payload)
-    pkt.info = "{} -> {} Len={}".format(src_port, dst_port, udp_len - 8)
+    pkt.info = f"{src_port} -> {dst_port} Len={udp_len - 8}"
     if pkt.app:
-        pkt.info = "{} {}".format(pkt.info, pkt.app)
+        pkt.info = f"{pkt.info} {pkt.app}"
     if pkt.dns_name:
-        pkt.info = "{} · {}".format(pkt.info, pkt.dns_name)
+        pkt.info = f"{pkt.info} · {pkt.dns_name}"
 
 
 def _decode_icmp(data: bytes, pkt: Packet, version: int = 4) -> None:
@@ -633,7 +632,7 @@ def _decode_icmp(data: bytes, pkt: Packet, version: int = 4) -> None:
     pkt.icmp_type = icmp_type
     pkt.icmp_code = data[1] if len(data) > 1 else 0
     types = ICMPV6_TYPES if version == 6 else ICMP_TYPES
-    pkt.info = types.get(icmp_type, "Type {}".format(icmp_type))
+    pkt.info = types.get(icmp_type, f"Type {icmp_type}")
 
 
 def _decode_arp(data: bytes, pkt: Packet) -> None:
@@ -657,12 +656,12 @@ def _decode_arp(data: bytes, pkt: Packet) -> None:
     pkt.src_ip = _format_ipv4(sender_ip)
     pkt.dst_ip = _format_ipv4(target_ip)
     if opcode == 1:
-        pkt.info = "Who has {}? Tell {}".format(pkt.dst_ip, pkt.src_ip)
+        pkt.info = f"Who has {pkt.dst_ip}? Tell {pkt.src_ip}"
     elif opcode == 2:
         pkt.dst_mac = _format_mac(target_mac)
-        pkt.info = "{} is at {}".format(pkt.src_ip, pkt.src_mac)
+        pkt.info = f"{pkt.src_ip} is at {pkt.src_mac}"
     else:
-        pkt.info = "ARP opcode {}".format(opcode)
+        pkt.info = f"ARP opcode {opcode}"
 
 
 def _decode_ipv4(data: bytes, pkt: Packet, reassembler=None) -> None:
@@ -704,10 +703,10 @@ def _decode_ipv4(data: bytes, pkt: Packet, reassembler=None) -> None:
         if name:
             pkt.protocol = name
             pkt.transport = name
-            pkt.info = "{} протокол".format(name)
+            pkt.info = f"{name} протокол"
         else:
             pkt.protocol = "IPv4"
-            pkt.info = "IPv4 protocol {}".format(proto)
+            pkt.info = f"IPv4 protocol {proto}"
 
 
 def _handle_ipv4_fragment(pkt: Packet, payload: bytes, proto: int, offset: int,
@@ -716,7 +715,7 @@ def _handle_ipv4_fragment(pkt: Packet, payload: bytes, proto: int, offset: int,
     if reassembler is None:
         pkt.protocol = "IPv4"
         pkt.info = ("Фрагмент IPv4 (начало)" if not offset
-                    else "Фрагмент IPv4 (offset {})".format(offset))
+                    else f"Фрагмент IPv4 (offset {offset})")
         return
 
     key = (pkt.src_ip, pkt.dst_ip, pkt.ip_id, proto)
@@ -724,8 +723,8 @@ def _handle_ipv4_fragment(pkt: Packet, payload: bytes, proto: int, offset: int,
 
     if merged is None:
         pkt.protocol = "IPv4"
-        pkt.info = ("Фрагмент IPv4 (начало, {} байт)".format(len(payload))
-                    if not offset else "Фрагмент IPv4 (offset {})".format(offset))
+        pkt.info = (f"Фрагмент IPv4 (начало, {len(payload)} байт)"
+                    if not offset else f"Фрагмент IPv4 (offset {offset})")
         return
 
     data, count = merged
@@ -742,11 +741,11 @@ def _handle_ipv4_fragment(pkt: Packet, payload: bytes, proto: int, offset: int,
         if name:
             pkt.protocol = name
             pkt.transport = name
-            pkt.info = "{} протокол".format(name)
+            pkt.info = f"{name} протокол"
         else:
             pkt.protocol = "IPv4"
-            pkt.info = "IPv4 protocol {}".format(proto)
-    suffix = " · собран из {} фрагментов".format(count)
+            pkt.info = f"IPv4 protocol {proto}"
+    suffix = f" · собран из {count} фрагментов"
     pkt.info = (pkt.info + suffix) if pkt.info else suffix.strip(" ·")
 
 
@@ -804,10 +803,10 @@ def _decode_ipv6(data: bytes, pkt: Packet, reassembler=None) -> None:
         if name:
             pkt.protocol = name
             pkt.transport = name
-            pkt.info = "{} протокол".format(name)
+            pkt.info = f"{name} протокол"
         else:
             pkt.protocol = "IPv6"
-            pkt.info = "IPv6 next header {}".format(current)
+            pkt.info = f"IPv6 next header {current}"
 
 
 def _handle_ipv6_fragment(pkt: Packet, payload: bytes, next_header: int,
@@ -816,7 +815,7 @@ def _handle_ipv6_fragment(pkt: Packet, payload: bytes, next_header: int,
     if reassembler is None:
         pkt.protocol = "IPv6"
         pkt.info = ("Фрагмент IPv6 (начало)" if not offset
-                    else "Фрагмент IPv6 (offset {})".format(offset))
+                    else f"Фрагмент IPv6 (offset {offset})")
         return
 
     key = (pkt.src_ip, pkt.dst_ip, pkt.ip_id, next_header)
@@ -824,8 +823,8 @@ def _handle_ipv6_fragment(pkt: Packet, payload: bytes, next_header: int,
 
     if merged is None:
         pkt.protocol = "IPv6"
-        pkt.info = ("Фрагмент IPv6 (начало, {} байт)".format(len(payload))
-                    if not offset else "Фрагмент IPv6 (offset {})".format(offset))
+        pkt.info = (f"Фрагмент IPv6 (начало, {len(payload)} байт)"
+                    if not offset else f"Фрагмент IPv6 (offset {offset})")
         return
 
     data, count = merged
@@ -839,8 +838,8 @@ def _handle_ipv6_fragment(pkt: Packet, payload: bytes, next_header: int,
         _decode_icmp(data, pkt, version=6)
     else:
         pkt.protocol = "IPv6"
-        pkt.info = "IPv6 next header {}".format(next_header)
-    suffix = " · собран из {} фрагментов".format(count)
+        pkt.info = f"IPv6 next header {next_header}"
+    suffix = f" · собран из {count} фрагментов"
     pkt.info = (pkt.info + suffix) if pkt.info else suffix.strip(" ·")
 
 
@@ -868,7 +867,7 @@ def _decode_ethernet(data: bytes, pkt: Packet, reassembler=None) -> None:
         _decode_arp(payload, pkt)
     else:
         pkt.protocol = "Ethernet"
-        pkt.info = "EtherType 0x{:04x}".format(ethertype)
+        pkt.info = f"EtherType 0x{ethertype:04x}"
 
 
 def _decode_raw_ip(data: bytes, pkt: Packet, reassembler=None) -> None:
@@ -916,7 +915,7 @@ def _decode_linux_sll(data: bytes, pkt: Packet, reassembler=None) -> None:
         _decode_arp(payload, pkt)
     else:
         pkt.protocol = "SLL"
-        pkt.info = "EtherType 0x{:04x}".format(ethertype)
+        pkt.info = f"EtherType 0x{ethertype:04x}"
 
 
 def _decode_linux_sll2(data: bytes, pkt: Packet, reassembler=None) -> None:
@@ -934,7 +933,7 @@ def _decode_linux_sll2(data: bytes, pkt: Packet, reassembler=None) -> None:
         _decode_arp(payload, pkt)
     else:
         pkt.protocol = "SLL2"
-        pkt.info = "EtherType 0x{:04x}".format(ethertype)
+        pkt.info = f"EtherType 0x{ethertype:04x}"
 
 
 def _decode_loop_big_endian(data: bytes, pkt: Packet, reassembler=None) -> None:
@@ -973,7 +972,7 @@ def decode_frame(data: bytes, linktype: int, pkt: Packet,
         _decode_ipv6(data, pkt, reassembler)
     else:
         pkt.protocol = "?"
-        pkt.info = "Кадр этого типа не разбирается (linktype {})".format(linktype)
+        pkt.info = f"Кадр этого типа не разбирается (linktype {linktype})"
 
 
 # ---------------------------------------------------------------------------
@@ -1076,12 +1075,12 @@ class _PcapngFileReader:
         if 9 in options and options[9]:
             value = options[9][0]
             if value & 0x80:
-                resolution = 2.0 ** -((value & 0x7F))
+                resolution = 2.0 ** -(value & 0x7F)
             else:
                 resolution = 10.0 ** (-value)
         self.interfaces.append({"linktype": linktype, "tsresol": resolution})
 
-    def _read_epb(self, body: bytes) -> Optional[tuple[int, float, int, int, bytes]]:
+    def _read_epb(self, body: bytes) -> tuple[int, float, int, int, bytes] | None:
         if len(body) < 20:
             return None
         iface_id, ts_high, ts_low, cap_len, pkt_len = struct.unpack(
@@ -1178,9 +1177,9 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
     """
     path = Path(path)
     if not path.exists():
-        raise PcapError("Файл не найден: {}".format(path))
+        raise PcapError(f"Файл не найден: {path}")
     if not path.is_file():
-        raise PcapError("Это не файл: {}".format(path))
+        raise PcapError(f"Это не файл: {path}")
 
     try:
         stream, compressed = _open_capture(path)
@@ -1213,7 +1212,7 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
     except PcapError:
         raise
     except (OSError, struct.error) as exc:
-        raise PcapError("Не удалось прочитать файл: {}".format(exc)) from exc
+        raise PcapError(f"Не удалось прочитать файл: {exc}") from exc
 
 
 def read_payloads(path: str | Path, frames, max_bytes: int | None = None) -> dict[int, bytes]:

@@ -10,7 +10,6 @@
 
 import re
 from ipaddress import IPv4Address, IPv6Address
-from typing import Optional
 
 
 class ValidationError(Exception):
@@ -27,7 +26,7 @@ IPV4_PATTERN = re.compile(
 )
 
 
-def validate_ipv4(address: str) -> Optional[str]:
+def validate_ipv4(address: str) -> str | None:
     """
     Валидирует и нормализует IPv4-адрес.
 
@@ -69,7 +68,7 @@ def is_valid_ipv4(address: str) -> bool:
 # ---------------------------------------------------------------------------
 # IPv6 валидация (задел на будущее)
 # ---------------------------------------------------------------------------
-def validate_ipv6(address: str) -> Optional[str]:
+def validate_ipv6(address: str) -> str | None:
     """
     Валидирует и нормализует IPv6-адрес.
 
@@ -119,7 +118,7 @@ MAC_PATTERNS = [
 MAC_TO_COLON = str.maketrans(".-", "::")
 
 
-def validate_mac_address(mac: str) -> Optional[str]:
+def validate_mac_address(mac: str) -> str | None:
     """
     Валидирует и нормализует MAC-адрес.
 
@@ -158,7 +157,7 @@ def is_valid_mac_address(mac: str) -> bool:
 # ---------------------------------------------------------------------------
 # Порт валидация
 # ---------------------------------------------------------------------------
-def validate_port(port: str) -> Optional[int]:
+def validate_port(port: str) -> int | None:
     """
     Валидирует номер порта (1-65535).
 

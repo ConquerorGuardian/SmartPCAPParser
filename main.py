@@ -10,17 +10,17 @@ SmartPCAPParser — точка входа.
 """
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from parser.engine import NaturalLanguageFilterEngine          # noqa: E402
-from parser.filters import generate_filter                     # noqa: E402
-from parser.pcap_handler import PcapHandler                    # noqa: E402
-from parser.streams import (                                   # noqa: E402
+from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
+from parser.filters import generate_filter  # noqa: E402
+from parser.pcap_handler import PcapHandler  # noqa: E402
+from parser.streams import (  # noqa: E402
     MODE_HEX,
     MODE_TEXT,
     VIEW_BOTH,
@@ -56,19 +56,18 @@ def describe_command(command: str) -> None:
     engine = NaturalLanguageFilterEngine()
     query = engine.parse(command)
 
-    print("Намерение: {}".format(query.intent))
+    print(f"Намерение: {query.intent}")
     if query.entities:
         print("Сущности:")
         for entity in query.entities:
-            direction = "[{}]".format(entity.direction) if entity.direction else ""
-            print("   - {:10} {:7} {}".format(
-                entity.entity_type, direction, entity.normalized_value))
+            direction = f"[{entity.direction}]" if entity.direction else ""
+            print(f"   - {entity.entity_type:10} {direction:7} {entity.normalized_value}")
     else:
         print("Сущности: не найдены")
 
     filter_string = generate_filter(query)
     if filter_string:
-        print("Фильтр Wireshark: {}".format(filter_string))
+        print(f"Фильтр Wireshark: {filter_string}")
     else:
         print("Фильтр Wireshark: (пусто)")
 
@@ -85,11 +84,11 @@ def show_packets(pcap_path: str, command: str, limit: int) -> int:
     handler = PcapHandler(preview_count=limit)
     result = handler.load_and_filter(pcap_path, filter_string, limit=limit)
     if result.error:
-        print("Ошибка: {}".format(result.error))
+        print(f"Ошибка: {result.error}")
         return 1
 
-    print("Фильтр: {}".format(filter_string))
-    print("Найдено {} из {} пакетов".format(result.matched_packets, result.total_packets))
+    print(f"Фильтр: {filter_string}")
+    print(f"Найдено {result.matched_packets} из {result.total_packets} пакетов")
     print("")
     header = "{:>6}  {:>10}  {:>8}  {:>17}  {:>6}  {:>17}  {:>6}  {:>6}".format(
         "Frame", "Time", "Protocol", "Source", "SPort", "Destination", "DPort",
@@ -101,7 +100,7 @@ def show_packets(pcap_path: str, command: str, limit: int) -> int:
             row.frame, row.time, row.protocol, row.source, row.src_port or "-",
             row.destination, row.dst_port or "-", row.length))
     if result.matched_packets > len(result.rows):
-        print("... показаны первые {}".format(len(result.rows)))
+        print(f"... показаны первые {len(result.rows)}")
     return 0
 
 
@@ -110,12 +109,12 @@ def show_stream(pcap_path: str, frame_number: int, mode: str, view: str) -> int:
     handler = PcapHandler()
     packets, error = handler.load(pcap_path, keep_payload=True)
     if error:
-        print("Ошибка: {}".format(error))
+        print(f"Ошибка: {error}")
         return 1
 
     stream = follow_stream(packets, frame_number)
     if stream is None:
-        print("Кадр {} не найден или это не TCP.".format(frame_number))
+        print(f"Кадр {frame_number} не найден или это не TCP.")
         return 1
 
     print(summarize(stream))
