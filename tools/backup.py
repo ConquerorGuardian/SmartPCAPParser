@@ -21,7 +21,9 @@ ROOT = Path(__file__).resolve().parent.parent
 BACKUPS = ROOT / "backups"
 
 SKIP_DIRS = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
-             "build", "dist", "backups", "samples", ".venv", "venv"}
+             "build", "dist", "backups", "samples", ".venv", "venv",
+             ".pylibs", ".tmp", "tmp_pip", ".bench", "node_modules",
+             ".idea", ".vscode"}
 SKIP_SUFFIXES = {".pyc", ".pyo", ".pcap", ".pcapng", ".gz", ".exe", ".dll"}
 
 
@@ -49,6 +51,7 @@ def make_backup(note: str = "") -> Path:
     target = BACKUPS / name
 
     count = 0
+    skipped = 0
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in sorted(ROOT.rglob("*")):
             if path.is_dir() or path == target:
@@ -56,7 +59,12 @@ def make_backup(note: str = "") -> Path:
             relative = path.relative_to(ROOT)
             if should_skip(relative):
                 continue
-            archive.write(path, Path("SmartPCAPParser") / relative)
+            try:
+                archive.write(path, Path("SmartPCAPParser") / relative)
+            except OSError:
+                # Один нечитаемый файл не должен ломать всю копию.
+                skipped += 1
+                continue
             count += 1
 
         if note:
@@ -69,6 +77,8 @@ def make_backup(note: str = "") -> Path:
 
     size_mb = target.stat().st_size / (1024 * 1024)
     print(f"Бэкап: {target} ({count} файлов, {size_mb:.1f} МБ)")
+    if skipped:
+        print(f"Пропущено нечитаемых файлов: {skipped}")
     return target
 
 
