@@ -191,6 +191,16 @@ def run_selftest() -> int:
     except Exception as exc:                 # noqa: BLE001
         check("поток UDP", False, "{}: {}".format(type(exc).__name__, exc))
 
+    try:
+        from gui.app import SmartPcapApp
+
+        check("интерфейс собран", isinstance(SmartPcapApp, type))
+    except Exception as exc:                 # noqa: BLE001 — в т.ч. нет дисплея
+        check("интерфейс собран", False, "{}: {}".format(type(exc).__name__, exc))
+
+    icon = resource_path("assets/app.ico")
+    check("иконка на месте", icon.exists(), str(icon))
+
     lines.append("")
     lines.append("Версия: {}".format(app_version()))
     lines.append("Python: {}".format(sys.version.split()[0]))
