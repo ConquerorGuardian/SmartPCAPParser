@@ -9,6 +9,30 @@ Wireshark и сразу показывает подходящие пакеты �
 
 ![Скриншот приложения](docs/screenshot.png)
 
+[English version](README.en.md) · [История изменений](CHANGELOG.md)
+
+## Скачать и запустить
+
+**Готовый exe (Windows, Python не нужен):** скачайте
+`SmartPCAPParser-<версия>-windows-x64.zip` со страницы
+[Releases](../../releases), распакуйте в любую папку и запустите
+`SmartPCAPParser.exe`.
+
+**Из исходников:**
+
+```bash
+git clone https://github.com/Whitemoneydealer/SmartPCAPParser.git
+cd SmartPCAPParser
+pip install -r requirements.txt
+python main.py
+```
+
+Единственная зависимость — `customtkinter`. Всё остальное — стандартная
+библиотека Python.
+
+На Windows можно без командной строки: один раз установить зависимости и
+дальше запускать двойным кликом по `run.bat`.
+
 ## Зачем это нужно
 
 В Wireshark приходится писать фильтры на его собственном синтаксисе:
@@ -110,8 +134,8 @@ ip.addr==192.168.1.10 and tcp.port==80
 - **Настройки сохраняются** между запусками: тема, размер окна, ширина
   колонок, история команд, последняя папка и область статистики.
 - Тёмная и светлая темы (`Ctrl+L`).
-- Таблица показывает весь файл сразу (до 50 000 строк), кнопка «Показать все»
-  — для совсем больших дампов; экспорт в CSV.
+- Таблица листается страницами (по 1 000 строк) — весь файл доступен без
+  кнопки «Показать все»; экспорт в CSV.
 - Поиск по таблице (`Ctrl+F`): адрес, порт, протокол, имя сайта или текст
   из колонки Info. Счётчик «12 из 200» показывает, сколько строк осталось,
   Esc снимает поиск. Поиск работает поверх фильтра и не меняет сам фильтр;
@@ -120,22 +144,12 @@ ip.addr==192.168.1.10 and tcp.port==80
   `Ctrl+F` — поиск по таблице, `Ctrl+T` — поток TCP, `Ctrl+L` — тема,
   `F1` — справка.
 
-## Установка и запуск
+## Консольный режим
 
 ```bash
-pip install -r requirements.txt
-python main.py
-```
+python main.py --version     # версия
+python main.py --selftest    # самопроверка: чтение, фильтры, потоки
 
-Единственная внешняя зависимость — `customtkinter` для интерфейса.
-Всё остальное — стандартная библиотека Python.
-
-На Windows можно без командной строки: один раз установить зависимости
-и дальше запускать двойным кликом по `run.bat`.
-
-Консольный режим:
-
-```bash
 # разбор примеров команд
 python main.py --demo
 
@@ -147,6 +161,33 @@ python main.py --file tests/sample_traffic.pcap --follow 6
 python main.py --file tests/sample_traffic.pcap --follow 6 --hex
 python main.py --file tests/sample_traffic.pcap --follow 6 --dir client
 ```
+
+## Сборка exe
+
+```bash
+pip install -r requirements-dev.txt
+python tools/make_icon.py      # перерисовать assets/app.ico (нужен Pillow)
+python tools/build_exe.py      # dist/SmartPCAPParser/ + zip
+dist/SmartPCAPParser/SmartPCAPParser.exe --selftest
+```
+
+`python tools/build_exe.py --onefile` собирает один exe вместо папки.
+Сборка по тегу `v*` автоматически делается в GitHub Actions
+(`.github/workflows/build.yml`) и прикрепляется к Releases.
+
+## Скорость
+
+Замер на синтетическом дампе (`python tools/bench.py --mb 40`,
+237 000 пакетов, 40 МБ, эта машина):
+
+| Шаг | Результат |
+| --- | --- |
+| Разбор заголовков | 2.5 с (~94 000 пакетов/с, ~16 МБ/с) |
+| Разбор с телами пакетов | 2.7 с |
+| Фильтр `tcp.port==80 and frame.len > 100` | 0.30 с |
+| Сборка одного TCP-потока | 0.09 с |
+
+Повторить на своей машине: `python tools/bench.py --mb 100`.
 
 ## Примеры команд
 
@@ -487,7 +528,9 @@ gui/app.py           ── окно, таблица, кнопки, график
 python -m tests.run_all
 ```
 
-Сейчас это 160 проверок в 11 модулях — все проходят.
+Сейчас это 166 проверок в 12 модулях — все проходят. Есть и golden-тесты
+(`tests/test_golden.py`): таблица «фильтр → номера кадров», которая ловит
+незаметные изменения семантики фильтров.
 
 Или по отдельности:
 
@@ -500,6 +543,7 @@ python -m tests.test_streams
 python -m tests.test_stats
 python -m tests.test_verdict
 python -m tests.test_settings
+python -m tests.test_golden
 python -m tests.test_corpus
 python -m tests.test_full_pipeline
 python -m tests.test_gui_smoke
@@ -526,8 +570,21 @@ python -m tests.test_corpus        # прогнать все файлы чере
 ```
 
 Тест проверяет: файл читается, команды дают компилируемый фильтр, вердикт
-и статистика не падают, а неразобранные кадры честно называются в вердикте.
+и статистика не падают, а разобранные кадры честно называются в вердикте.
 Если папки `samples/` нет, тест пропускается, а не падает.
+
+## Сохранность проекта
+
+Проект хранится в git: каждый шаг — отдельный коммит, история восстанавливается
+командой `git log`/`git checkout`. Поверх этого есть локальные архивы:
+
+```bash
+python tools/backup.py --note "перед рефакторингом"   # backups/*.zip
+python tools/backup.py --list                          # что уже сохранено
+```
+
+Архив содержит исходники **и папку `.git`**, то есть полную историю: из него
+можно восстановить и код, и коммиты, даже если рабочая папка потеряется.
 
 ## Ограничения
 
@@ -548,8 +605,14 @@ python -m tests.test_corpus        # прогнать все файлы чере
 
 ```
 SmartPCAPParser/
-├── main.py                 точка входа (GUI или консоль)
-├── requirements.txt
+├── main.py                 точка входа (GUI, консоль, --selftest)
+├── pyproject.toml           метаданные, ruff, pytest, mypy
+├── smartpcap.spec           сборка exe (PyInstaller)
+├── CHANGELOG.md
+├── README.en.md
+├── assets/
+│   ├── app.ico              иконка приложения
+│   └── logo.png
 ├── parser/
 │   ├── engine.py
 │   ├── filters.py
@@ -576,12 +639,17 @@ SmartPCAPParser/
 │   ├── test_stats.py
 │   ├── test_verdict.py
 │   ├── test_settings.py
+│   ├── test_golden.py
 │   ├── test_corpus.py
 │   ├── test_full_pipeline.py
 │   ├── test_gui_smoke.py
 │   └── run_all.py
 ├── tools/
-│   └── fetch_samples.py    скачивание корпуса реальных дампов
+│   ├── build_exe.py         сборка exe + zip
+│   ├── make_icon.py         перерисовка иконки (Pillow)
+│   ├── backup.py            резервная копия проекта
+│   ├── bench.py             замер скорости
+│   └── fetch_samples.py     скачивание корпуса реальных дампов
 └── docs/
     ├── screenshot.png
     ├── stats.png

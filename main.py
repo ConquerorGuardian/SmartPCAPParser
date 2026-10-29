@@ -7,10 +7,14 @@ SmartPCAPParser — точка входа.
     python main.py --demo
     python main.py -c "покажи http трафик"
     python main.py --file tests/sample_traffic.pcap -c "выведи пакеты на порт 80"
+    python main.py --version
+    python main.py --selftest
 """
 
 import argparse
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -19,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
+from parser.matcher import compile_filter  # noqa: E402
 from parser.pcap_handler import PcapHandler  # noqa: E402
 from parser.streams import (  # noqa: E402
     MODE_HEX,
@@ -26,6 +31,7 @@ from parser.streams import (  # noqa: E402
     VIEW_BOTH,
     VIEW_CLIENT,
     VIEW_SERVER,
+    follow_datagram_flow,
     follow_stream,
     render_stream,
     summarize,
@@ -49,9 +55,29 @@ DEMO_COMMANDS = [
 ]
 
 
+def app_version() -> str:
+    """Версия приложения — из parser/__init__.py, чтобы был один источник."""
+    try:
+        from parser import __version__
+
+        return __version__
+    except Exception:                        # noqa: BLE001 — версия не критична
+        return "unknown"
+
+
+def resource_path(relative: str) -> Path:
+    """Путь к ресурсу и в исходниках, и внутри собранного exe (PyInstaller)."""
+    bundled = getattr(sys, "_MEIPASS", None)
+    if bundled:
+        candidate = Path(bundled) / relative
+        if candidate.exists():
+            return candidate
+    return PROJECT_ROOT / relative
+
+
 def describe_command(command: str) -> None:
     """Печатает результат разбора одной команды."""
-    print("=== Команда: {} ===".format(command or "(пустая)"))
+    print(f"=== Команда: {command or '(пустая)'} ===")
 
     engine = NaturalLanguageFilterEngine()
     query = engine.parse(command)
@@ -123,7 +149,73 @@ def show_stream(pcap_path: str, frame_number: int, mode: str, view: str) -> int:
     return 0
 
 
+def run_selftest() -> int:
+    """Самопроверка собранного приложения: чтение, фильтры, потоки.
+
+    Печатает отчёт, если есть консоль, и всегда пишет его в файл
+    `smartpcap_selftest.txt` во временной папке — это позволяет проверить
+    exe, собранный без консоли.
+    """
+    sample = resource_path("tests/sample_traffic.pcap")
+    lines: list[str] = []
+    failures = 0
+
+    def check(name: str, ok: bool, extra: str = "") -> None:
+        nonlocal failures
+        if not ok:
+            failures += 1
+        lines.append(("OK   " if ok else "FAIL ") + name + ((" — " + extra) if extra else ""))
+
+    check("файл примера найден", sample.exists(), str(sample))
+    packets, error = PcapHandler().load(str(sample), keep_payload=True)
+    check("дамп прочитан", error is None and len(packets) == 13,
+          "пакетов {}".format(len(packets) if packets else 0) if not error else str(error))
+
+    try:
+        engine = NaturalLanguageFilterEngine()
+        filter_string = generate_filter(engine.parse("покажи сайт example.com"))
+        matched = sum(1 for packet in packets if compile_filter(filter_string)(packet))
+        check("фильтр по имени сайта", matched == 3, "совпадений {}".format(matched))
+    except Exception as exc:                 # noqa: BLE001 — проверяем любой сбой
+        check("фильтр по имени сайта", False, "{}: {}".format(type(exc).__name__, exc))
+
+    try:
+        stream = follow_stream(packets, 6)
+        check("поток TCP", stream is not None and stream.total_bytes > 0)
+    except Exception as exc:                 # noqa: BLE001
+        check("поток TCP", False, "{}: {}".format(type(exc).__name__, exc))
+
+    try:
+        datagram = follow_datagram_flow(packets, 2)
+        check("поток UDP", datagram is not None and datagram.total_bytes > 0)
+    except Exception as exc:                 # noqa: BLE001
+        check("поток UDP", False, "{}: {}".format(type(exc).__name__, exc))
+
+    lines.append("")
+    lines.append("Версия: {}".format(app_version()))
+    lines.append("Python: {}".format(sys.version.split()[0]))
+    lines.append("Итог: {}".format("OK" if not failures else "ошибок {}".format(failures)))
+    report = "\n".join(lines)
+
+    if sys.stdout is not None:
+        try:
+            print(report)
+        except Exception:                    # noqa: BLE001 — консоли может не быть
+            pass
+    try:
+        target = Path(tempfile.gettempdir()) / "smartpcap_selftest.txt"
+        target.write_text(report + "\n", encoding="utf-8")
+        if sys.stdout is not None:
+            print("Отчёт: {}".format(target))
+    except OSError:
+        pass
+
+    return 0 if not failures else 1
+
+
 def main() -> int:
+    gui_only = os.environ.get("SMARTPCAP_GUI_ONLY") == "1"
+
     # Консоль Windows может не знать символов вроде "·" — не падаем на этом.
     try:
         sys.stdout.reconfigure(errors="replace")
@@ -131,8 +223,20 @@ def main() -> int:
         pass
 
     parser = argparse.ArgumentParser(
+        prog="smartpcap",
         description="SmartPCAPParser — фильтры Wireshark из обычных слов",
+        epilog=(
+            "Примеры:\n"
+            "  smartpcap                                  открыть приложение\n"
+            "  smartpcap --file dump.pcap -c \"покажи http трафик\"\n"
+            "  smartpcap --file dump.pcap --follow 6 --hex\n"
+            "  smartpcap --demo\n"
+            "  smartpcap --selftest"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("-V", "--version", action="version",
+                        version="Smart PCAP Parser {}".format(app_version()))
     parser.add_argument("--demo", action="store_true",
                         help="показать разбор примеров команд")
     parser.add_argument("-c", "--command", type=str, default="",
@@ -147,10 +251,15 @@ def main() -> int:
                         help="вместе с --follow: hex-дамп вместо текста")
     parser.add_argument("--dir", choices=["both", "client", "server"], default="both",
                         help="вместе с --follow: какое направление показать")
+    parser.add_argument("--selftest", action="store_true",
+                        help="проверить сборку без окна и выйти")
     parser.add_argument("--cli", action="store_true",
                         help="не запускать GUI")
 
     args = parser.parse_args()
+
+    if args.selftest:
+        return run_selftest()
 
     if args.file and args.follow:
         view = {"both": VIEW_BOTH, "client": VIEW_CLIENT,
@@ -175,6 +284,10 @@ def main() -> int:
     if args.cli:
         parser.print_help()
         return 0
+
+    if gui_only and (args.file or args.command or args.demo or args.cli):
+        # Собранный GUI-exe без консоли: аргументы есть, но печатать некуда.
+        return run_selftest()
 
     from gui.app import main as gui_main
     gui_main()

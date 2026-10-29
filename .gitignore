@@ -27,6 +27,7 @@ backups/
 .pylibs/
 .tmp/
 tmp_pip/
+.bench/
 
 # Скачанные дампы для проверки на реальном трафике
 samples/
