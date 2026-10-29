@@ -18,7 +18,7 @@
 import gzip
 import re
 import struct
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
@@ -1163,7 +1163,12 @@ def _open_capture(path: Path) -> tuple[BinaryIO, bool]:
     return raw, False
 
 
-def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Packet], int]:
+def read_packets(
+    path: str | Path,
+    keep_payload: bool = False,
+    progress: Callable[[float | None], None] | None = None,
+    should_stop: Callable[[], bool] | None = None,
+) -> tuple[list[Packet], int]:
     """
     Читает файл захвата и возвращает (список пакетов, linktype).
 
@@ -1172,6 +1177,11 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
         keep_payload: Хранить данные TCP в Packet.payload. Нужно для сборки
             потока ("Follow TCP stream"); по умолчанию выключено, чтобы не
             держать в памяти копию содержимого дампа.
+        progress: Необязательный обратный вызов: получает долю прочитанного
+            от 0 до 1 или None, если файл сжат и процент посчитать нельзя.
+        should_stop: Необязательная проверка «пользователь нажал Отмена».
+            Вызывается каждые 256 пакетов; при True чтение прекращается
+            с PcapError("Чтение отменено").
 
     Исключения формата заворачиваются в PcapError, файл закрывается.
     """
@@ -1182,8 +1192,33 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
         raise PcapError(f"Это не файл: {path}")
 
     try:
+        total_bytes = 0
+        if progress is not None:
+            try:
+                total_bytes = path.stat().st_size
+            except OSError:
+                total_bytes = 0
+
         stream, compressed = _open_capture(path)
         reassembler = _Reassembler()
+
+        def tick(number: int) -> None:
+            """Раз в 256 пакетов: отмена и прогресс."""
+            if number % 256:
+                return
+            if should_stop is not None and should_stop():
+                raise PcapError("Чтение отменено")
+            if progress is None:
+                return
+            if compressed or not total_bytes:
+                progress(None)
+                return
+            try:
+                position = stream.tell()
+            except (OSError, ValueError):
+                position = 0
+            progress(min(1.0, position / total_bytes))
+
         try:
             fmt = _detect_format(stream)
             if fmt == "pcap":
@@ -1196,6 +1231,9 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
                     if not keep_payload:
                         pkt.payload = b""
                     packets.append(pkt)
+                    tick(number)
+                if progress is not None:
+                    progress(1.0)
                 return packets, linktype
 
             reader = _PcapngFileReader(stream)
@@ -1206,6 +1244,9 @@ def read_packets(path: str | Path, keep_payload: bool = False) -> tuple[list[Pac
                 if not keep_payload:
                     pkt.payload = b""
                 packets.append(pkt)
+                tick(number)
+            if progress is not None:
+                progress(1.0)
             return packets, (reader.interfaces[0]["linktype"] if reader.interfaces else LINKTYPE_ETHERNET)
         finally:
             stream.close()

@@ -548,6 +548,48 @@ def test_ip_protocols_and_icmpv6():
     print("PASS: test_ip_protocols_and_icmpv6")
 
 
+def write_many_packets(path: Path, count: int) -> None:
+    """Простой pcap с count TCP-пакетами: нужен, чтобы прогресс успел сработать."""
+    import struct
+
+    frame = (
+        bytes.fromhex("aabbccddeeff1122334455660800")
+        + struct.pack("!BBHHHBBH4s4s", 0x45, 0, 40, 1, 0x4000, 64, 6, 0,
+                      bytes([10, 0, 0, 1]), bytes([10, 0, 0, 2]))
+        + struct.pack("!HHIIBBHHH", 40000, 80, 1, 1, 0x50, 0x18, 65535, 0, 0)
+    )
+    with open(path, "wb") as handle:
+        handle.write(struct.pack("<IHHIIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1))
+        for index in range(count):
+            handle.write(struct.pack("<IIII", 1700000000 + index, 0,
+                                     len(frame), len(frame)))
+            handle.write(frame)
+
+
+def test_progress_reports_and_cancel_stops():
+    """Прогресс доходит до 100 %, а отмена прекращает чтение с понятной ошибкой."""
+    path = Path(__file__).parent / "_many_packets.pcap"
+    write_many_packets(path, 600)
+    try:
+        seen: list = []
+        packets, _ = read_packets(path, progress=seen.append)
+        assert len(packets) == 600, len(packets)
+        assert seen, "прогресс не вызывался"
+        assert seen[-1] == 1.0, seen[-1]
+        numbers = [value for value in seen if value is not None]
+        assert numbers == sorted(numbers), numbers[:5]
+
+        try:
+            read_packets(path, should_stop=lambda: True)
+        except PcapError as exc:
+            assert "отменено" in str(exc), str(exc)
+        else:
+            raise AssertionError("отмена не сработала: чтение не прервалось")
+    finally:
+        path.unlink(missing_ok=True)
+    print("PASS: test_progress_reports_and_cancel_stops")
+
+
 if __name__ == "__main__":
     tests = [
         test_pcap_packet_count,
@@ -574,6 +616,7 @@ if __name__ == "__main__":
         test_read_payloads_lazy,
         test_service_port_map,
         test_ip_protocols_and_icmpv6,
+        test_progress_reports_and_cancel_stops,
     ]
 
     failed = 0

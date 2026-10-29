@@ -28,6 +28,7 @@ backups/
 .tmp/
 tmp_pip/
 .bench/
+_split_tmp/
 
 # Скачанные дампы для проверки на реальном трафике
 samples/

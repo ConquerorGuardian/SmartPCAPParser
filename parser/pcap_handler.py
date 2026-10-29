@@ -115,7 +115,9 @@ class PcapHandler:
         return self.apply(packets, display_filter, limit=limit)
 
     def load(self, pcap_path: str | Path,
-             keep_payload: bool = False) -> tuple[list[Packet], str | None]:
+             keep_payload: bool = False,
+             progress=None,
+             should_stop=None) -> tuple[list[Packet], str | None]:
         """
         Читает файл и возвращает (пакеты, ошибка).
 
@@ -124,9 +126,16 @@ class PcapHandler:
         Args:
             pcap_path: Путь к .pcap/.pcapng.
             keep_payload: Хранить данные TCP — нужно для сборки потока.
+            progress: Обратный вызов прогресса (доля 0..1 или None).
+            should_stop: Проверка отмены чтения; True — прекратить.
         """
         try:
-            packets, _linktype = read_packets(pcap_path, keep_payload=keep_payload)
+            packets, _linktype = read_packets(
+                pcap_path,
+                keep_payload=keep_payload,
+                progress=progress,
+                should_stop=should_stop,
+            )
             return packets, None
         except PcapError as exc:
             return [], str(exc)

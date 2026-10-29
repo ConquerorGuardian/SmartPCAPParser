@@ -24,10 +24,12 @@ DEFAULTS: dict[str, Any] = {
     "last_dir": "",
     "columns": {},
     "stats_scope": "Все пакеты",
+    "recent": [],
 }
 
 HISTORY_LIMIT = 40
 MAX_COLUMNS = 32
+RECENT_LIMIT = 8
 
 
 def _clean_theme(value: Any) -> str:
@@ -74,6 +76,21 @@ def _clean_scope(value: Any) -> str:
     return value if value in ("Все пакеты", "Найденные") else DEFAULTS["stats_scope"]
 
 
+def _clean_recent(value: Any) -> list[str]:
+    """Недавние файлы: только строки с путём, без дубликатов."""
+    if not isinstance(value, list):
+        return []
+    cleaned: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        path = item.strip()
+        if not path or path in cleaned:
+            continue
+        cleaned.append(path)
+    return cleaned[:RECENT_LIMIT]
+
+
 def normalize(data: Any) -> dict[str, Any]:
     """Приводит произвольный словарь к безопасным настройкам."""
     if not isinstance(data, dict):
@@ -87,6 +104,7 @@ def normalize(data: Any) -> dict[str, Any]:
         "last_dir": last_dir if isinstance(last_dir, str) else "",
         "columns": _clean_columns(data.get("columns")),
         "stats_scope": _clean_scope(data.get("stats_scope")),
+        "recent": _clean_recent(data.get("recent")),
     }
 
 

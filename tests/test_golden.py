@@ -134,8 +134,8 @@ def test_selftest_entrypoint():
 
 def test_version_is_single_source():
     """Версия в одном месте и совпадает с тем, что печатает CLI."""
-    import parser
     import main as entry
+    import parser
 
     assert parser.__version__.count(".") == 2, parser.__version__
     assert entry.app_version() == parser.__version__

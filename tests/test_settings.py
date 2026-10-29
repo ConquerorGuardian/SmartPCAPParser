@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from parser.settings import (
     DEFAULTS,
     HISTORY_LIMIT,
+    RECENT_LIMIT,
     load_settings,
     normalize,
     save_settings,
@@ -99,12 +100,24 @@ def test_save_to_unwritable_path():
     print("PASS: test_save_to_unwritable_path")
 
 
+def test_recent_files_cleanup():
+    """Недавние файлы: без дубликатов, мусора и длиннее лимита."""
+    recent = ["C:/dumps/a.pcap", "C:/dumps/a.pcap", "", "  ", "C:/dumps/b.pcap"]
+    recent += ["C:/dumps/{}.pcap".format(index) for index in range(20)]
+    cleaned = normalize({"recent": recent})["recent"]
+    assert cleaned[:2] == ["C:/dumps/a.pcap", "C:/dumps/b.pcap"], cleaned[:2]
+    assert len(cleaned) == RECENT_LIMIT, len(cleaned)
+    assert normalize({"recent": "не список"})["recent"] == []
+    print("PASS: test_recent_files_cleanup")
+
+
 def main() -> int:
     tests = [
         test_defaults_when_missing,
         test_roundtrip,
         test_broken_file,
         test_history_cleanup,
+        test_recent_files_cleanup,
         test_save_to_unwritable_path,
     ]
 

@@ -710,6 +710,115 @@ def run_big_file_flow() -> None:
                 time.sleep(0.05)
 
 
+def run_pagination_flow() -> None:
+    """Большой результат листается страницами, поиск и сортировка сбрасывают страницу."""
+    from gui import table_view
+    from gui.app import SmartPcapApp
+
+    path = Path(__file__).parent / "_pages_test.pcap"
+    write_big_pcap(path, 25)
+
+    saved_limit, saved_page = table_view.VIEW_LIMIT, table_view.PAGE_SIZE
+    table_view.VIEW_LIMIT = 20
+    table_view.PAGE_SIZE = 10
+
+    app = SmartPcapApp()
+    app.withdraw()
+    try:
+        app._load_worker(path)
+        app._poll_load()
+        app.update()
+
+        assert len(app.packets) == 25, len(app.packets)
+        assert len(app.tree.get_children()) == 10, len(app.tree.get_children())
+        assert "Стр. 1 из 3" in app.page_label.cget("text"), app.page_label.cget("text")
+
+        app._go_page(1)
+        app.update()
+        assert len(app.tree.get_children()) == 10
+        assert "Стр. 2 из 3" in app.page_label.cget("text")
+
+        app._page_last()
+        app.update()
+        assert len(app.tree.get_children()) == 5, len(app.tree.get_children())
+
+        # Сортировка и поиск начинают с первой страницы.
+        app._on_heading_click("Frame")
+        app.update()
+        assert app._page == 1, app._page
+
+        app._go_page(1)
+        app.search_entry.insert(0, "tcp")
+        app._apply_search()
+        app.update()
+        assert app._page == 1, app._page
+        assert len(app.tree.get_children()) == 10
+    finally:
+        table_view.VIEW_LIMIT, table_view.PAGE_SIZE = saved_limit, saved_page
+        shutdown(app)
+        path.unlink(missing_ok=True)
+
+
+def run_recent_flow() -> None:
+    """Недавние файлы: запоминаются, не дублируются, пропавшие убираются."""
+    from gui.app import SmartPcapApp
+
+    app = SmartPcapApp()
+    app.withdraw()
+    missing = Path(__file__).parent / "_no_such_capture.pcap"
+    try:
+        app._load_worker(SAMPLE)
+        app._poll_load()
+        app.update()
+
+        assert app._recent and app._recent[0].endswith("sample_traffic.pcap"), app._recent
+        labels = [str(value) for value in app.recent_menu.cget("values")]
+        assert any("sample_traffic.pcap" in label for label in labels), labels
+
+        app._load_worker(SAMPLE)
+        app._poll_load()
+        app.update()
+        assert sum(1 for item in app._recent if item.endswith("sample_traffic.pcap")) == 1
+
+        app._recent.insert(0, str(missing))
+        app._refresh_recent_menu()
+        label = next(
+            text for text, path in app._recent_map.items() if path == str(missing)
+        )
+        app._open_recent(label)
+        app.update()
+        assert all("_no_such_capture" not in item for item in app._recent), app._recent
+        assert "не существует" in app.status_label.cget("text")
+    finally:
+        shutdown(app)
+
+
+def run_cancel_load_flow() -> None:
+    """Отмена чтения: статус без диалога ошибки и без падения."""
+    from gui import app as gui_app
+
+    app = gui_app.SmartPcapApp()
+    app.withdraw()
+    original = gui_app.messagebox.showerror
+
+    def boom(*args, **kwargs):
+        raise AssertionError("при отмене не должно быть диалога ошибки")
+
+    gui_app.messagebox.showerror = boom
+    try:
+        app._load_cancel.set()
+        app._load_queue.put((SAMPLE, [], "Чтение отменено"))
+        app._poll_load()
+        app.update()
+        assert "отменено" in app.status_label.cget("text").lower(), (
+            app.status_label.cget("text")
+        )
+        assert app.packets == [], app.packets
+    finally:
+        gui_app.messagebox.showerror = original
+        shutdown(app)
+
+
 def test_table_limit_rule() -> None:
     """Правило «показывать всё или первую страницу» — на границах."""
     from gui.app import PREVIEW_COUNT, VIEW_LIMIT, table_limit
@@ -845,7 +954,8 @@ if __name__ == "__main__":
     flows = [
         run_flow, run_stream_flow, run_stats_flow, run_theme_flow, run_verdict_flow,
         run_search_flow, run_export_flow, run_layout_flow, run_big_file_flow,
-        run_lazy_stream_flow, run_udp_stream_flow,
+        run_lazy_stream_flow, run_udp_stream_flow, run_pagination_flow,
+        run_recent_flow, run_cancel_load_flow,
     ]
     failed = 0
     for flow in flows:

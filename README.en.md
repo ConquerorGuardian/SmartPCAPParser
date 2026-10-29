@@ -1,9 +1,9 @@
-# Smart PCAP Parser
+﻿# Smart PCAP Parser
 
 Turn a plain sentence into a Wireshark display filter and instantly see the
-matching packets — no tshark, no Wireshark, no AI.
+matching packets вЂ” no tshark, no Wireshark, no AI.
 
-**Русская версия:** [README.md](README.md)
+**Р СѓСЃСЃРєР°СЏ РІРµСЂСЃРёСЏ:** [README.md](README.md)
 
 ![Screenshot](docs/screenshot.png)
 
@@ -18,7 +18,7 @@ ip.addr==192.168.1.10 and tcp.port==80
 This app lets you type:
 
 ```
-покажи http трафик с айпи 192.168.1.10
+РїРѕРєР°Р¶Рё http С‚СЂР°С„РёРє СЃ Р°Р№РїРё 192.168.1.10
 ```
 
 It extracts the indicators, builds a valid Wireshark filter, applies it to the
@@ -37,20 +37,22 @@ be copied into Wireshark.
 - Protocols: TCP, UDP, ICMP, ICMPv6, IGMP, GRE, ESP, AH, OSPF, ARP and
   application protocols (HTTP, HTTP/2, DNS, TLS, QUIC, SSH, SMB, RDP, DHCP,
   DHCPv6, NTP, LLMNR, SSDP, mDNS, NetBIOS, RADIUS, BGP, MQTT, SIP, and more).
-- Names from traffic: HTTP Host, TLS SNI, DNS query — shown in the table,
+- Names from traffic: HTTP Host, TLS SNI, DNS query вЂ” shown in the table,
   searchable, summarised in statistics and in the verdict.
 - IP defragmentation (IPv4 and IPv6) before TCP/UDP decoding.
 - Follow TCP stream and follow UDP conversation, text or hex.
 - Own display-filter evaluator: numeric fields, TCP flags, string fields,
-  `contains` / `matches`, `in {…}` sets — typical filters copied from the
+  `contains` / `matches`, `in {вЂ¦}` sets вЂ” typical filters copied from the
   internet no longer fail.
 - Traffic-over-time chart, protocol hierarchy, conversations, endpoints,
-  hosts — on the whole file or on the current filter.
+  hosts вЂ” on the whole file or on the current filter.
 - Plain-language verdict with 10 detectors (unanswered SYNs, resets, DNS gaps,
-  port scans, ICMP errors, broadcast storms, top talker, …).
-- Dark/light theme; window size, column widths, command history and last folder
-  are remembered between runs.
-- 166 checks across 12 test modules, including GUI smoke tests and golden
+  port scans, ICMP errors, broadcast storms, top talker, вЂ¦).
+- Dark/light theme; window size, column widths, command history, recent files
+  and last folder are remembered between runs.
+- Large captures are read in a background thread with a progress bar and a
+  Cancel button; the table pages through results of any size.
+- 171 checks across 12 test modules, including GUI smoke tests and golden
   filter tests.
 
 ## Install and run
@@ -70,14 +72,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The only runtime dependency is `customtkinter`.
+The only runtime dependency is `customtkinter`. Optional: `pip install
+tkinterdnd2` enables dragging capture files into the window; everything else
+works without it.
 
 ### CLI
 
 ```bash
 python main.py --version
 python main.py --demo
-python main.py --file tests/sample_traffic.pcap -c "покажи http трафик"
+python main.py --file tests/sample_traffic.pcap -c "РїРѕРєР°Р¶Рё http С‚СЂР°С„РёРє"
 python main.py --file tests/sample_traffic.pcap --follow 6 --hex
 python main.py --selftest
 ```
@@ -117,8 +121,8 @@ Measured with `python tools/bench.py --mb 40` on a synthetic dump
 ## How it works
 
 ```
-Russian phrase → engine → filters → matcher → pcap_reader → GUI
-                              ↘ stats / verdict / streams
+Russian phrase в†’ engine в†’ filters в†’ matcher в†’ pcap_reader в†’ GUI
+                              в† stats / verdict / streams
 ```
 
 | Module | Purpose |
@@ -131,7 +135,13 @@ Russian phrase → engine → filters → matcher → pcap_reader → GUI
 | `parser/stats.py` | Protocol hierarchy, conversations, endpoints, hosts, timeline |
 | `parser/verdict.py` | Plain-language summary and findings |
 | `parser/settings.py` | Persist UI settings between runs |
-| `gui/` | CustomTkinter interface, chart, widgets |
+| `gui/app.py` | UI core: file loading, commands, theme, settings |
+| `gui/layout.py` | Widget construction |
+| `gui/table_view.py` | Packet table: rows, search, sorting, pages |
+| `gui/stats_view.py` | Statistics tab |
+| `gui/dialogs.py` | Help, packet details, stream window, verdict |
+| `gui/theme.py` | Dark/light palettes and UI constants |
+| `gui/chart.py` | Traffic chart on a Canvas |
 
 ## Limitations
 
@@ -139,8 +149,9 @@ Russian phrase → engine → filters → matcher → pcap_reader → GUI
 - Not the whole Wireshark syntax: `tcp.analysis.*` and `http.response.*` are
   not supported.
 - Headers of the whole file are kept in memory; payloads are loaded on demand.
+  The table keeps up to 500 000 rows вЂ” use filters/search on larger captures.
 - Exotic link types (ATM, MTP2, Frame Relay) are reported as unsupported.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT вЂ” see [LICENSE](LICENSE).
