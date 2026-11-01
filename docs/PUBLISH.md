@@ -1,95 +1,69 @@
-# Как выложить проект на GitHub
+# Как выложить на GitHub
 
-Чек-лист на случай, если публиковать будете вы сами (или чтобы одобрить
-публикацию агенту). Всё уже подготовлено: git-история, тесты, сборка exe,
-workflow для Releases.
+Публикация это один тег. Всё остальное уже настроено: репозиторий, Actions,
+скрипты.
 
-Если **github.com не открывается** — сначала короткая инструкция
-[GITHUB-ACCESS.md](GITHUB-ACCESS.md): WARP/VPN, git через SSH-порт 443,
-перенос проекта bundle-файлом.
+Если github.com не открывается или не пускает в аккаунт, сначала
+[GITHUB-ACCESS.md](GITHUB-ACCESS.md).
 
-Самый короткий путь, когда доступ есть:
+## Одной командой
 
 ```powershell
 .\tools\publish.ps1 -Repo https://github.com/Whitemoneydealer/SmartPCAPParser.git
 ```
 
-Скрипт проверит чистоту репозитория и сеть, поставит remote, отправит `main`
-и тег `v1.9.1`; тег запустит сборку и релиз.
+Скрипт проверит чистую рабочую папку, что порт 443 отвечает, поставит
+`origin`, если его нет, запушит `main` и поставит тег `v1.9.1`. Дальше
+GitHub Actions прогонит тесты, соберёт exe и папку, проверит их и создаст
+релиз с файлами и суммами.
 
-## 1. Создать пустой репозиторий
+Потом откройте страницу релиза, вставьте текст из
+[RELEASE-NOTES.md](RELEASE-NOTES.md), при желании приложите скриншот.
 
-На github.com → **New repository** → имя `SmartPCAPParser` → **без** README,
-`.gitignore` и лицензии (они уже в проекте) → **Create**.
+## Руками
 
-## 2. Привязать remote и запушить
+Репозиторий на GitHub создайте пустым: без README, лицензии и `.gitignore`.
 
 ```bash
-cd SmartPCAPParser
 git remote add origin https://github.com/Whitemoneydealer/SmartPCAPParser.git
 git branch -M main
 git push -u origin main
-```
-
-Если git попросит пароль — нужен **Personal Access Token** (Settings →
-Developer settings → Tokens → Fine-grained, права `Contents: read/write`),
-обычный пароль GitHub больше не принимает.
-
-## 3. Проверить, что тесты прошли
-
-Вкладка **Actions** → workflow `tests` должен быть зелёным
-(ruff + 177 проверок с xvfb).
-
-## 4. Выпустить версию (это и есть «скачать с GitHub»)
-
-```bash
 git tag -a v1.9.1 -m "Smart PCAP Parser 1.9.1"
 git push origin v1.9.1
 ```
 
-Тег запускает `build-windows`: тесты → сборка **одного exe** и папки →
-самопроверка обеих сборок → публикация в **Releases** вместе с
-`SHA256SUMS.txt` и текстом «Как запустить».
+Тег и есть спусковой крючок для CI. Если поставить его раньше `main` или
+дважды, сборка либо не увидит коммит, либо перезапишет релиз. Порядок такой:
+сначала `main`, потом тег.
 
-Через ~5 минут на странице
-`https://github.com/Whitemoneydealer/SmartPCAPParser/releases` появится
-релиз, откуда один файл `SmartPCAPParser.exe` скачивается одним кликом.
+## После публикации
 
-### Если релиз нужно оформить вручную
+- вкладка Actions: оба workflow зелёные, exe в артефактах релиза;
+- страница релиза: exe, zip и `SHA256SUMS.txt` на месте;
+- README на GitHub отрисовывается со скриншотом;
+- прямая ссылка `.../releases/latest/download/SmartPCAPParser.exe` скачивает
+  последнюю версию;
+- скачанный exe запускается, `--selftest` даёт код 0.
+
+## Если CI упал
+
+Логи в Actions. Частые причины: тег без коммита, не хватает секрета
+`GITHUB_TOKEN` (в публичном репозитории он есть по умолчанию), тест на
+корпусе полез в сеть (он пропускается, если `samples/` нет).
+
+Пересобрать локально и сравнить:
 
 ```bash
-python tools/make_release_folder.py     # папка release/ с exe, zip, суммами, LICENSE
+python tools/build_exe.py --both
+python tools/check_exe.py dist/SmartPCAPParser.exe dist/SmartPCAPParser/SmartPCAPParser.exe
 ```
 
-В `release/` лежит `ОТПРАВИТЬ-В-РЕЛИЗ.txt` — что прикрепить, какой тег и
-заголовок, откуда взять описание (`docs/RELEASE-NOTES.md`). Загружать
-через **Releases → Draft a new release** и перетащить файлы.
+## Откат
 
-## 5. Оформить страницу репозитория
+```bash
+git tag -d v1.9.1                 # локально
+git push origin :refs/tags/v1.9.1 # на GitHub
+```
 
-- **Description**: `Фильтры Wireshark из обычных слов: анализ pcap/pcapng без tshark и ИИ`
-- **Topics**: `pcap`, `pcapng`, `wireshark`, `network-analysis`, `python`,
-  `customtkinter`, `traffic-analysis`, `security`
-- **Website** — ссылку на Releases.
-- README уже содержит картинку, скачивание, ограничения и историю изменений.
-
-## Что проверить после публикации
-
-- [ ] `git clone` в чистую папку и `python main.py` запускаются
-- [ ] `pip install -r requirements.txt` ставит только `customtkinter`
-- [ ] exe из Releases запускается и открывает дамп
-- [ ] `SmartPCAPParser.exe --selftest` возвращает 0
-- [ ] README на GitHub показывает скриншот и таблицу скачивания
-- [ ] `LICENSE` и `CHANGELOG.md` видны в репозитории
-
-## Если что-то пошло не так
-
-| Симптом | Что делать |
-| --- | --- |
-| Actions падает на тестах | локально `python -m tests.run_all` — там же ошибка |
-| Релиз без файлов | проверить, что тег начинается с `v` и workflow `build-windows` зелёный |
-| exe не запускается у скачавшего | попросить `--selftest` и прислать `%TEMP%\smartpcap_selftest.txt` |
-| SmartScreen ругается | это ожидаемо: exe не подписан, в README есть пояснение |
-
-Проект не публикуется автоматически и никуда не отправляется без
-разрешения владельца.
+Релиз удаляется кнопкой на странице релиза. Те, кто уже скачал файл, ничего
+не заметят, поэтому лучше выпустить 1.9.2, чем переписывать 1.9.1.

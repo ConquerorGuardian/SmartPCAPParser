@@ -1,108 +1,92 @@
 # Smart PCAP Parser
 
-Turn a plain sentence into a Wireshark display filter and instantly see the
-matching packets — no tshark, no Wireshark, no AI.
+Turn a Russian sentence into a Wireshark display filter and see the matching
+packets right away. No tshark, no Wireshark, no AI.
 
-**Русская версия:** [README.md](README.md)
+[Русская версия](README.md)
 
 ![Screenshot](docs/screenshot.png)
 
 ## What it is
 
-Wireshark asks you to write display filters by hand:
+Wireshark wants filters like this:
 
 ```
 ip.addr==192.168.1.10 and tcp.port==80
 ```
 
-This app lets you type:
+Here you type this:
 
 ```
 покажи http трафик с айпи 192.168.1.10
 ```
 
-It extracts the indicators, builds a valid Wireshark filter, applies it to the
-capture with its own evaluator and shows the packets. The generated filter can
-be copied into Wireshark.
+The app pulls the addresses, ports and protocols out of the phrase, builds a
+valid display filter, applies it to the capture and fills the table. The filter
+itself can be copied into Wireshark.
 
-> The command language is Russian-first (the project was built for Russian
-> speakers). Filters, protocol names and the generated Wireshark strings are
-> language-independent, so the app is still useful as a pcap viewer with a
-> plain-language front end.
+The phrase language is Russian. Filter syntax, protocol names and the generated
+Wireshark strings are language independent, so the app also works as a plain
+pcap viewer with a human front end.
 
 ## Features
 
-- Reads `.pcap` / `.pcapng` (including `.gz`) with the standard library only.
-- Ethernet + VLAN, raw IP, loopback, Linux SLL/SLL2, IPv4/IPv6.
-- Protocols: TCP, UDP, ICMP, ICMPv6, IGMP, GRE, ESP, AH, OSPF, ARP and
-  application protocols (HTTP, HTTP/2, DNS, TLS, QUIC, SSH, SMB, RDP, DHCP,
-  DHCPv6, NTP, LLMNR, SSDP, mDNS, NetBIOS, RADIUS, BGP, MQTT, SIP, and more).
-- Names from traffic: HTTP Host, TLS SNI, DNS query — shown in the table,
+- Reads `.pcap` and `.pcapng`, including `.gz`, with the standard library only.
+- Ethernet with VLAN, raw IP, loopback, Linux SLL/SLL2, plain IPv4/IPv6 frames.
+- IPv4, IPv6, ARP, TCP, UDP, ICMP, ICMPv6, IGMP, GRE, ESP, AH, OSPF.
+- Application protocols: HTTP, HTTP/2, DNS, TLS, QUIC, SSH, FTP, SMTP, NTP,
+  DHCP, DHCPv6, Telnet, POP3, IMAP, LDAP, SMB, RDP, MySQL, mDNS, LLMNR, SSDP,
+  NetBIOS, RADIUS, BGP, XMPP, IRC, L2TP, IPsec, MSSQL, PostgreSQL, MongoDB,
+  Redis, Memcached, NFS, SIP, SNMP, TFTP, VNC, MQTT, Kerberos, Syslog, STUN,
+  OpenVPN, SOCKS.
+- Some protocols are recognised by content, not by port: HTTP/2 preface, HTTP
+  request lines, TLS handshake, SSH banner, SIP methods, MQTT CONNECT, DNS over
+  TCP.
+- Names from traffic: HTTP Host, TLS SNI and DNS query, shown in the table,
   searchable, summarised in statistics and in the verdict.
-- IP defragmentation (IPv4 and IPv6) before TCP/UDP decoding.
-- Follow TCP stream and follow UDP conversation, text or hex.
-- Own display-filter evaluator: numeric fields, TCP flags, string fields,
-  `contains` / `matches`, `in {…}` sets — typical filters copied from the
-  internet no longer fail.
-- Traffic-over-time chart, protocol hierarchy, conversations, endpoints,
-  hosts — on the whole file or on the current filter.
-- Plain-language verdict with 10 detectors (unanswered SYNs, resets, DNS gaps,
-  port scans, ICMP errors, broadcast storms, top talker, …).
-- Dark/light theme; window size, column widths, command history, recent files
-  and last folder are remembered between runs.
-- Large captures are read in a background thread with a progress bar and a
-  Cancel button; the table pages through results of any size.
-- 177 checks across 12 test modules, including GUI smoke tests and golden
-  filter tests.
-- A ready Wireshark display filter can be pasted as is (`tcp.port==443`,
-  `ip.addr==10.0.0.1 and http`, `frame.len > 1000`): it is applied to the
-  table, and an unknown field is answered with the list of supported ones.
-
-## Documentation
-
-- [docs/EXAMPLES.md](docs/EXAMPLES.md) — phrases and the filters they produce
-- [docs/FAQ.md](docs/FAQ.md) — SmartScreen, formats, privacy, large captures
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the code is organised
-- [CONTRIBUTING.md](CONTRIBUTING.md) — build, tests, ideas
-- [SECURITY.md](SECURITY.md) — reporting, threat model
-- [CHANGELOG.md](CHANGELOG.md) — versions
+- IPv4 and IPv6 defragmentation before TCP/UDP decoding.
+- Follow TCP stream and follow UDP conversation, as text or hex.
+- Own filter evaluator: addresses, ports, MACs, numeric fields, TCP flags,
+  string fields, `contains`, `matches`, `in {…}`.
+- A ready Wireshark filter can be pasted as is: `tcp.port==443`,
+  `ip.addr==10.0.0.1 and http`, `frame.len > 1000`.
+- Table, search, sorting, paging, CSV export, packet details with hex dump.
+- Statistics: traffic chart, protocol hierarchy, conversations, endpoints,
+  hosts, on the whole file or on the current filter.
+- Plain-language verdict with findings, each one can be applied as a filter.
+- Dark and light theme, settings and recent files survive restarts.
+- 177 checks in 12 test modules, 54 real captures in the corpus run.
 
 ## Install and run
 
-### Ready-made Windows build
-
-The whole program is **one file — no installer, no Python**. Grab it from
+One file, no installer, no Python. Take it from
 [Releases](../../releases):
 
-| File | What it is | Size |
-| --- | --- | --- |
-| **`SmartPCAPParser.exe`** | everything in a single file: download, run | ~13 MB |
-| `SmartPCAPParser-<version>-windows-x64.zip` | the same app as a folder (starts a bit faster; useful when a policy blocks single-file executables) | ~13 MB |
-| `SHA256SUMS.txt` | checksums to verify the download | 1 KB |
+| File | What it is |
+| --- | --- |
+| `SmartPCAPParser.exe` | the whole app in one file, about 13 MB |
+| `SmartPCAPParser-<version>-windows-x64.zip` | the same app as a folder |
+| `SHA256SUMS.txt` | checksums |
 
-Direct link to the latest build (safe to share or bookmark):
+Direct link to the latest build:
 
 ```
 https://github.com/Whitemoneydealer/SmartPCAPParser/releases/latest/download/SmartPCAPParser.exe
 ```
 
-Run `SmartPCAPParser.exe` by double-clicking it. Open a capture with the
-“Открыть файл” button, by dropping a file into the window, or like this:
+Open a capture with the «Открыть файл» button, by dropping it into the window,
+or from the command line:
 
-```bash
+```
 SmartPCAPParser.exe C:\dumps\capture.pcap
 ```
 
-A capture dropped onto the `SmartPCAPParser.exe` icon opens as well.
+A file dropped on the exe icon opens too. The exe is not code-signed, so
+SmartScreen may warn, which is normal here. Check a build with
+`SmartPCAPParser.exe --selftest` (exit code 0). Updating means replacing the
+exe, settings stay.
 
-The exe is not code-signed, so SmartScreen may ask whether to run it — normal
-for small open-source projects. You can verify a build with
-`SmartPCAPParser.exe --selftest` (no window, exit code 0).
-
-Updating is just replacing the exe: settings (theme, command history, recent
-files) live separately and survive the update.
-
-### From source
+From source:
 
 ```bash
 git clone https://github.com/Whitemoneydealer/SmartPCAPParser.git
@@ -112,57 +96,57 @@ python main.py
 ```
 
 The only runtime dependency is `customtkinter`. On Windows `run.bat` does the
-same as the commands above: it finds Python, checks `customtkinter` and prints
-the install command if it is missing. The exe does not need it.
+same and tells you what to install if something is missing. Optional:
+`pip install tkinterdnd2` enables drag and drop into the window.
 
-Optional: `pip install
-tkinterdnd2` enables dragging capture files into the window; everything else
-works without it.
-
-### CLI
+CLI:
 
 ```bash
 python main.py --version
 python main.py --demo
-python main.py dump.pcap          # open a capture in the window
+python main.py dump.pcap
 python main.py --file tests/sample_traffic.pcap -c "покажи http трафик"
 python main.py --file tests/sample_traffic.pcap --follow 6 --hex
 python main.py --selftest
 ```
 
-## Build the exe yourself
+## Build
 
 ```bash
 pip install -r requirements-dev.txt
-python tools/make_icon.py        # optional: regenerate assets/app.ico (needs Pillow)
-python tools/build_exe.py        # dist/SmartPCAPParser.exe — single file
-python tools/build_exe.py --onedir   # dist/SmartPCAPParser/ + zip
-python tools/build_exe.py --both     # both, the way CI does it
-python tools/check_exe.py dist/SmartPCAPParser.exe   # --version and --selftest
-dist/SmartPCAPParser.exe --selftest
+python tools/make_icon.py                # regenerate assets/app.ico, needs Pillow
+python tools/build_exe.py                # one file
+python tools/build_exe.py --both         # file and folder, the way CI does it
+python tools/check_exe.py dist/SmartPCAPParser.exe
 ```
 
-`dist/SHA256SUMS.txt` is written next to the artifacts. Pushing a `v*` tag makes
-GitHub Actions run the tests, build both variants, self-test each exe and
-publish them to Releases.
+`dist/SHA256SUMS.txt` is written next to the artifacts. A `v*` tag runs the
+tests, builds both variants, self-tests them and publishes to Releases.
 
 ## Tests
 
 ```bash
-python -m tests.run_all
+python -m tests.run_all      # all modules
+python -m tests.test_engine  # one module
 ```
 
-Golden filter tests (`tests/test_golden.py`) pin down filter semantics against
-a fixed sample capture; GUI smoke tests cover the main user flows.
+Golden tests pin filter behaviour to packet numbers on a fixed capture. GUI
+smoke tests open the real window and walk the main flows.
+
+Real captures:
+
+```bash
+python tools/fetch_samples.py   # 54 files into samples/
+python -m tests.test_corpus
+```
 
 ## Benchmarks
 
-Measured with `python tools/bench.py --mb 40` on a synthetic dump
-(237 000 packets, 40 MB):
+`python tools/bench.py --mb 40` on a synthetic dump, 237 000 packets:
 
 | Step | Result |
 | --- | --- |
-| Parse headers | 2.5 s (~94 000 packets/s, ~16 MB/s) |
+| Parse headers | 2.5 s, about 94 000 packets per second |
 | Parse with payloads | 2.7 s |
 | Filter `tcp.port==80 and frame.len > 100` | 0.30 s |
 | Assemble one TCP stream | 0.09 s |
@@ -170,37 +154,44 @@ Measured with `python tools/bench.py --mb 40` on a synthetic dump
 ## How it works
 
 ```
-Russian phrase в†’ engine в†’ filters в†’ matcher в†’ pcap_reader в†’ GUI
-                              в† stats / verdict / streams
+phrase -> engine -> filters -> matcher -> pcap_reader -> GUI
+                                    \-> stats / verdict / streams
 ```
 
 | Module | Purpose |
 | --- | --- |
-| `parser/engine.py` | Parse the phrase, extract IPs, ports, MACs, names, protocols |
-| `parser/filters.py` | Build the Wireshark display filter |
-| `parser/matcher.py` | Compile and evaluate the filter against packets |
-| `parser/pcap_reader.py` | Read pcap/pcapng, decode headers, defragment, extract names |
-| `parser/streams.py` | TCP streams and UDP conversations |
-| `parser/stats.py` | Protocol hierarchy, conversations, endpoints, hosts, timeline |
-| `parser/verdict.py` | Plain-language summary and findings |
-| `parser/settings.py` | Persist UI settings between runs |
-| `gui/app.py` | UI core: file loading, commands, theme, settings |
-| `gui/layout.py` | Widget construction |
-| `gui/table_view.py` | Packet table: rows, search, sorting, pages |
-| `gui/stats_view.py` | Statistics tab |
-| `gui/dialogs.py` | Help, packet details, stream window, verdict |
-| `gui/theme.py` | Dark/light palettes and UI constants |
-| `gui/chart.py` | Traffic chart on a Canvas |
+| `parser/engine.py` | phrase parsing: addresses, ports, MACs, names, protocols |
+| `parser/filters.py` | display filter construction |
+| `parser/matcher.py` | compile and evaluate the filter on packets |
+| `parser/pcap_reader.py` | pcap/pcapng, headers, defragmentation, names |
+| `parser/streams.py` | TCP streams, UDP conversations |
+| `parser/stats.py` | timeline, hierarchy, conversations, endpoints, hosts |
+| `parser/verdict.py` | summary and findings |
+| `parser/settings.py` | UI settings between runs |
+| `gui/app.py` | loading, commands, theme, settings |
+| `gui/layout.py` | widgets |
+| `gui/table_view.py` | packet table |
+| `gui/stats_view.py`, `gui/chart.py` | statistics tab and chart |
+| `gui/dialogs.py`, `gui/help_text.py` | help, details, stream, verdict |
+
+More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Limitations
 
-- IPv6: no full extension-header chain (addresses, ports, fragments only).
+- IPv6: no extension header chain deeper than four.
 - Not the whole Wireshark syntax: `tcp.analysis.*` and `http.response.*` are
-  not supported.
-- Headers of the whole file are kept in memory; payloads are loaded on demand.
-  The table keeps up to 500 000 rows — use filters/search on larger captures.
+  missing.
+- Headers of the whole file stay in memory. Payloads are read on demand, up to
+  64 MB per stream. The table keeps 500 000 rows, use filters on bigger files.
 - Exotic link types (ATM, MTP2, Frame Relay) are reported as unsupported.
+- No TLS decryption.
+
+## Documentation
+
+[Examples](docs/EXAMPLES.md) · [FAQ](docs/FAQ.md) ·
+[Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) ·
+[Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
