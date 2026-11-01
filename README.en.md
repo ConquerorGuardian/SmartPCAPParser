@@ -1,9 +1,9 @@
-﻿# Smart PCAP Parser
+# Smart PCAP Parser
 
 Turn a plain sentence into a Wireshark display filter and instantly see the
-matching packets вЂ” no tshark, no Wireshark, no AI.
+matching packets — no tshark, no Wireshark, no AI.
 
-**Р СѓСЃСЃРєР°СЏ РІРµСЂСЃРёСЏ:** [README.md](README.md)
+**Русская версия:** [README.md](README.md)
 
 ![Screenshot](docs/screenshot.png)
 
@@ -18,7 +18,7 @@ ip.addr==192.168.1.10 and tcp.port==80
 This app lets you type:
 
 ```
-РїРѕРєР°Р¶Рё http С‚СЂР°С„РёРє СЃ Р°Р№РїРё 192.168.1.10
+покажи http трафик с айпи 192.168.1.10
 ```
 
 It extracts the indicators, builds a valid Wireshark filter, applies it to the
@@ -37,17 +37,17 @@ be copied into Wireshark.
 - Protocols: TCP, UDP, ICMP, ICMPv6, IGMP, GRE, ESP, AH, OSPF, ARP and
   application protocols (HTTP, HTTP/2, DNS, TLS, QUIC, SSH, SMB, RDP, DHCP,
   DHCPv6, NTP, LLMNR, SSDP, mDNS, NetBIOS, RADIUS, BGP, MQTT, SIP, and more).
-- Names from traffic: HTTP Host, TLS SNI, DNS query вЂ” shown in the table,
+- Names from traffic: HTTP Host, TLS SNI, DNS query — shown in the table,
   searchable, summarised in statistics and in the verdict.
 - IP defragmentation (IPv4 and IPv6) before TCP/UDP decoding.
 - Follow TCP stream and follow UDP conversation, text or hex.
 - Own display-filter evaluator: numeric fields, TCP flags, string fields,
-  `contains` / `matches`, `in {вЂ¦}` sets вЂ” typical filters copied from the
+  `contains` / `matches`, `in {…}` sets — typical filters copied from the
   internet no longer fail.
 - Traffic-over-time chart, protocol hierarchy, conversations, endpoints,
-  hosts вЂ” on the whole file or on the current filter.
+  hosts — on the whole file or on the current filter.
 - Plain-language verdict with 10 detectors (unanswered SYNs, resets, DNS gaps,
-  port scans, ICMP errors, broadcast storms, top talker, вЂ¦).
+  port scans, ICMP errors, broadcast storms, top talker, …).
 - Dark/light theme; window size, column widths, command history, recent files
   and last folder are remembered between runs.
 - Large captures are read in a background thread with a progress bar and a
@@ -81,7 +81,7 @@ works without it.
 ```bash
 python main.py --version
 python main.py --demo
-python main.py --file tests/sample_traffic.pcap -c "РїРѕРєР°Р¶Рё http С‚СЂР°С„РёРє"
+python main.py --file tests/sample_traffic.pcap -c "покажи http трафик"
 python main.py --file tests/sample_traffic.pcap --follow 6 --hex
 python main.py --selftest
 ```
@@ -149,9 +149,9 @@ Russian phrase в†’ engine в†’ filters в†’ matcher в†’ pcap_r
 - Not the whole Wireshark syntax: `tcp.analysis.*` and `http.response.*` are
   not supported.
 - Headers of the whole file are kept in memory; payloads are loaded on demand.
-  The table keeps up to 500 000 rows вЂ” use filters/search on larger captures.
+  The table keeps up to 500 000 rows — use filters/search on larger captures.
 - Exotic link types (ATM, MTP2, Frame Relay) are reported as unsupported.
 
 ## License
 
-MIT вЂ” see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

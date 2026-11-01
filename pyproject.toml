@@ -30,6 +30,12 @@ dependencies = ["customtkinter>=5.2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11", "pyinstaller>=6.6"]
+# Сборка exe: tools/build_exe.py
+build = ["pyinstaller>=6.6"]
+# Перерисовка иконки: tools/make_icon.py
+assets = ["pillow>=10"]
+# Необязательное перетаскивание файлов в окно
+dnd = ["tkinterdnd2>=0.4"]
 
 [project.scripts]
 smartpcap = "main:main"

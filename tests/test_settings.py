@@ -37,6 +37,7 @@ def test_roundtrip():
         "last_dir": r"C:\dumps",
         "columns": {"#0": 300, "Info": 420},
         "stats_scope": "Найденные",
+        "recent": [r"C:\dumps\a.pcap", r"C:\dumps\b.pcapng"],
     }
     try:
         assert save_settings(payload, path) is True
@@ -47,6 +48,7 @@ def test_roundtrip():
         assert loaded["history"] == ["покажи http", "порты 80,443"], loaded
         assert loaded["columns"]["#0"] == 300
         assert loaded["stats_scope"] == "Найденные"
+        assert loaded["recent"] == [r"C:\dumps\a.pcap", r"C:\dumps\b.pcapng"], loaded
     finally:
         path.unlink(missing_ok=True)
     print("PASS: test_roundtrip")
