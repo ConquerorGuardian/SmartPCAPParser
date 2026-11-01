@@ -4,6 +4,19 @@
 публикацию агенту). Всё уже подготовлено: git-история, тесты, сборка exe,
 workflow для Releases.
 
+Если **github.com не открывается** — сначала короткая инструкция
+[GITHUB-ACCESS.md](GITHUB-ACCESS.md): WARP/VPN, git через SSH-порт 443,
+перенос проекта bundle-файлом.
+
+Самый короткий путь, когда доступ есть:
+
+```powershell
+.\tools\publish.ps1 -Repo https://github.com/Whitemoneydealer/SmartPCAPParser.git
+```
+
+Скрипт проверит чистоту репозитория и сеть, поставит remote, отправит `main`
+и тег `v1.9.1`; тег запустит сборку и релиз.
+
 ## 1. Создать пустой репозиторий
 
 На github.com → **New repository** → имя `SmartPCAPParser` → **без** README,
