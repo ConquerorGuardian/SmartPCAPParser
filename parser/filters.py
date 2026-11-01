@@ -117,7 +117,7 @@ class FilterGenerator:
             Строка display filter Wireshark (пустая строка, если нет индикаторов).
         """
         if not query.entities:
-            return ""
+            return query.raw_filter.strip()
 
         parts = []
 

@@ -384,6 +384,41 @@ def test_new_protocol_words():
     print("PASS: test_new_protocol_words")
 
 
+def test_raw_display_filter():
+    """Фильтр Wireshark, набранный как есть, передаётся без изменений."""
+    engine = NaturalLanguageFilterEngine()
+
+    for text in (
+        "tcp.port==443",
+        "ip.addr==10.0.0.1 and http",
+        "frame.len > 1000",
+        "tcp.flags.syn==1",
+        "http.host contains \"example.com\"",
+        "tcp.analysis.retransmission",
+    ):
+        query = engine.parse(text)
+        assert query.raw_filter == text, (text, query.raw_filter)
+        assert generate_filter(query) == text, (text, generate_filter(query))
+
+    # Регистр значений сохраняется: имена хостов чувствительны к регистру.
+    host_filter = 'http.host contains "Example.COM"'
+    assert generate_filter(engine.parse(host_filter)) == host_filter
+
+    print("PASS: test_raw_display_filter")
+
+
+def test_domain_is_not_a_raw_filter():
+    """«example.com» и обычные фразы не принимаются за фильтр Wireshark."""
+    engine = NaturalLanguageFilterEngine()
+
+    assert engine.parse("example.com").raw_filter == ""
+    assert engine.parse("покажи сайт example.com").raw_filter == ""
+    assert engine.parse("покажи http").raw_filter == ""
+    assert engine.parse("покажи tcp трафик").raw_filter == ""
+
+    print("PASS: test_domain_is_not_a_raw_filter")
+
+
 if __name__ == "__main__":
     tests = [
         test_simple_ip,
@@ -411,6 +446,8 @@ if __name__ == "__main__":
         test_host_commands,
         test_new_protocol_words,
         test_help_intent,
+        test_raw_display_filter,
+        test_domain_is_not_a_raw_filter,
     ]
 
     failed = 0

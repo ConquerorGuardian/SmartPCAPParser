@@ -123,6 +123,10 @@ ip.addr==192.168.1.10 and tcp.port==80
   `dns.qry.name == example.com`, `tls.handshake.extensions_server_name`),
   `contains` / `matches` и `tcp contains текст` — типовые фильтры из
   интернета больше не падают с «Неизвестное поле».
+- **Готовый фильтр Wireshark можно вставить как есть** в поле команды:
+  `tcp.port==443`, `ip.addr==10.0.0.1 and http`, `frame.len > 1000` — он
+  применяется к таблице, а на неизвестное поле приложение отвечает списком
+  поддерживаемых.
 - Сборка TCP-потоков («Follow TCP stream»): содержимое соединения в текст
   или hex-дамп, копирование и сохранение в файл.
 - **«Поток UDP»**: датаграммы одного обмена собираются в две стороны —
@@ -575,7 +579,7 @@ gui/dialogs.py       ── справка, детали пакета, пото�
 python -m tests.run_all
 ```
 
-Сейчас это 175 проверок в 12 модулях — все проходят. Есть и golden-тесты
+Сейчас это 177 проверок в 12 модулях — все проходят. Есть и golden-тесты
 (`tests/test_golden.py`): таблица «фильтр → номера кадров», которая ловит
 незаметные изменения семантики фильтров.
 
@@ -634,7 +638,21 @@ python tools/backup.py --list                          # что уже сохр�
 можно восстановить и код, и коммиты, даже если рабочая папка потеряется.
 
 Как выложить проект на GitHub (репозиторий, тег, релиз с exe) — пошагово в
-[docs/PUBLISH.md](docs/PUBLISH.md).
+[docs/PUBLISH.md](docs/PUBLISH.md), приёмка перед публикацией —
+[docs/CHECKLIST.md](docs/CHECKLIST.md).
+
+## Документация
+
+| Файл | О чём |
+| --- | --- |
+| [docs/EXAMPLES.md](docs/EXAMPLES.md) | готовые фразы и фильтры: протоколы, адреса, комбинации, исключения |
+| [docs/FAQ.md](docs/FAQ.md) | частые вопросы: SmartScreen, форматы, приватность, большие файлы |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | как устроен код: поток данных, модули, как добавить протокол |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | как собрать, запустить тесты, что можно улучшить |
+| [SECURITY.md](SECURITY.md) | сообщить об уязвимости, модель угроз, что пишется на диск |
+| [CHANGELOG.md](CHANGELOG.md) | история версий |
+| [docs/PUBLISH.md](docs/PUBLISH.md) | как выложить на GitHub и выпустить релиз |
+| [docs/CHECKLIST.md](docs/CHECKLIST.md) | чек-лист приёмки перед публикацией |
 
 ## Ограничения
 
@@ -656,13 +674,22 @@ python tools/backup.py --list                          # что уже сохр�
 
 ```
 SmartPCAPParser/
-├── main.py                 точка входа (GUI, консоль, --selftest)
+├── main.py                 точка входа (GUI, консоль, --selftest, файл аргументом)
+├── run.bat                 запуск из исходников: находит Python с customtkinter
 ├── pyproject.toml           метаданные, ruff, pytest, mypy
+├── requirements.txt         единственная зависимость: customtkinter
+├── requirements-dev.txt     тесты, линтер, сборка exe
 ├── CHANGELOG.md
+├── README.md
 ├── README.en.md
+├── CONTRIBUTING.md          как собрать, тесты, идеи для PR
+├── SECURITY.md              уязвимости, модель угроз, приватность
+├── LICENSE
+├── .github/
+│   ├── workflows/           tests.yml (каждый push), build.yml (тег → релиз)
+│   └── ISSUE_TEMPLATE/      шаблоны баг-репорта и идеи
 ├── assets/
-│   ├── app.ico              иконка приложения
-│   └── logo.png
+│   └── app.ico              иконка приложения
 ├── parser/
 │   ├── engine.py
 │   ├── filters.py
@@ -684,37 +711,29 @@ SmartPCAPParser/
 │   ├── help_text.py         текст справки
 │   └── chart.py             график трафика
 ├── tests/
-│   ├── generate_sample_pcap.py
-│   ├── sample_traffic.pcap
-│   ├── sample_traffic.pcapng
-│   ├── test_engine.py
-│   ├── test_reader.py
-│   ├── test_matcher.py
-│   ├── test_handler.py
-│   ├── test_streams.py
-│   ├── test_stats.py
-│   ├── test_verdict.py
-│   ├── test_settings.py
-│   ├── test_golden.py
-│   ├── test_corpus.py
-│   ├── test_full_pipeline.py
-│   ├── test_gui_smoke.py
+│   ├── sample_traffic.pcap / .pcapng
+│   ├── test_engine.py … test_gui_smoke.py   12 модулей, 177 проверок
 │   └── run_all.py
 ├── tools/
 │   ├── build_exe.py         сборка exe (один файл или папка) + суммы
 │   ├── check_exe.py         проверка собранного exe (--version, --selftest)
+│   ├── make_release_folder.py  папка release/ для загрузки в релиз
+│   ├── make_friend_kit.py   zip «показать другу»: exe + инструкция
+│   ├── final_check.py       проверка перед публикацией (версии, ссылки, git)
+│   ├── publish.ps1          публикация: remote, push, тег
 │   ├── make_icon.py         перерисовка иконки (Pillow)
 │   ├── backup.py            резервная копия проекта
 │   ├── bench.py             замер скорости
 │   └── fetch_samples.py     скачивание корпуса реальных дампов
 └── docs/
-    ├── screenshot.png
-    ├── stats.png
-    ├── details.png
-    ├── verdict.png
-    ├── theme-light.png
-    ├── stream.png
-    └── PUBLISH.md
+    ├── EXAMPLES.md          примеры фраз и фильтров
+    ├── FAQ.md               частые вопросы
+    ├── ARCHITECTURE.md      устройство кода
+    ├── PUBLISH.md           как выложить на GitHub
+    ├── CHECKLIST.md         чек-лист приёмки
+    ├── RELEASE-NOTES.md     текст описания релиза
+    ├── GITHUB-ACCESS.md     что делать, если GitHub не открывается
+    └── *.png                скриншоты для README
 ```
 
 ## Лицензия

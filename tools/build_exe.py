@@ -163,6 +163,11 @@ def main() -> int:
     if DIST.exists():
         shutil.rmtree(DIST, ignore_errors=True)
 
+    # Старый build/ от предыдущей версии ломает onefile-сборку (exe выходит
+    # с кодом -1 и молчит), поэтому рабочая папка PyInstaller тоже чистится.
+    if BUILD.exists():
+        shutil.rmtree(BUILD, ignore_errors=True)
+
     modes: list[bool] = []
     if args.both:
         modes = [False, True]      # сначала один файл, потом папка
@@ -197,8 +202,14 @@ def main() -> int:
 
     checksums = write_checksums(artifacts)
     print("Контрольные суммы:", checksums)
+
+    # check_exe.py умеет проверять только exe, поэтому в подсказке — именно они.
+    check_targets = [DIST / "{}.exe".format(APP_NAME)]
+    folder_exe = DIST / APP_NAME / "{}.exe".format(APP_NAME)
+    if folder_exe.exists():
+        check_targets.append(folder_exe)
     print("Проверка: python tools/check_exe.py " + " ".join(
-        item.as_posix() for item in artifacts))
+        item.as_posix() for item in check_targets if item.exists()))
     return 0
 
 

@@ -38,7 +38,7 @@ Developer settings → Tokens → Fine-grained, права `Contents: read/write
 ## 3. Проверить, что тесты прошли
 
 Вкладка **Actions** → workflow `tests` должен быть зелёным
-(ruff + 175 проверок с xvfb).
+(ruff + 177 проверок с xvfb).
 
 ## 4. Выпустить версию (это и есть «скачать с GitHub»)
 

@@ -52,8 +52,20 @@ be copied into Wireshark.
   and last folder are remembered between runs.
 - Large captures are read in a background thread with a progress bar and a
   Cancel button; the table pages through results of any size.
-- 175 checks across 12 test modules, including GUI smoke tests and golden
+- 177 checks across 12 test modules, including GUI smoke tests and golden
   filter tests.
+- A ready Wireshark display filter can be pasted as is (`tcp.port==443`,
+  `ip.addr==10.0.0.1 and http`, `frame.len > 1000`): it is applied to the
+  table, and an unknown field is answered with the list of supported ones.
+
+## Documentation
+
+- [docs/EXAMPLES.md](docs/EXAMPLES.md) — phrases and the filters they produce
+- [docs/FAQ.md](docs/FAQ.md) — SmartScreen, formats, privacy, large captures
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the code is organised
+- [CONTRIBUTING.md](CONTRIBUTING.md) — build, tests, ideas
+- [SECURITY.md](SECURITY.md) — reporting, threat model
+- [CHANGELOG.md](CHANGELOG.md) — versions
 
 ## Install and run
 

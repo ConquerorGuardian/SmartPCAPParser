@@ -1,0 +1,54 @@
+name: Идея или улучшение
+description: Новый протокол, команда, элемент интерфейса
+title: "[idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Идеи приветствуются. Полезно сразу ответить: какую задачу это решает
+        и как вы себе представляете результат.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область
+      options:
+        - Словарь и фразы (новый протокол, формулировка)
+        - Фильтры и таблица
+        - Статистика и вердикт
+        - Интерфейс и удобство
+        - Сборка, релиз, документация
+        - Другое
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую задачу вы решаете
+      placeholder: "Анализирую трафик MQTT и каждый раз вручную пишу mqtt.port==1883"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Как это могло бы выглядеть
+      placeholder: "Хочу писать «покажи mqtt» и получать mqtt"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Что делаете сейчас (альтернативы)
+      placeholder: "Пишу фильтр вручную или через Wireshark"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Перед отправкой
+      options:
+        - label: Проверил, что такая идея ещё не предложена
+        - label: Готов помочь с реализацией или тестами

@@ -297,6 +297,34 @@ def _tokenize_words(text: str) -> list[tuple[str, int]]:
 
 CYRILLIC_RE = re.compile(r"[а-яё]")
 
+# Фильтр Wireshark, набранный как есть: «tcp.port==443», «frame.len > 1000»,
+# «ip.addr==10.0.0.1 and http». Пользователь, знающий Wireshark, вправе
+# вставить такой фильтр в строку команды — его не нужно переводить словами.
+DISPLAY_FIELD_RE = re.compile(r"\b[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+\b")
+DISPLAY_OP_RE = re.compile(r"==|!=|>=|<=|>|<|\bcontains\b|\bmatches\b|\bin\b")
+
+
+def looks_like_display_filter(text: str) -> str:
+    """
+    Возвращает фильтр Wireshark как есть, если текст — именно фильтр.
+
+    Пустая строка означает «это обычная команда словами». Проверка нарочно
+    строгая: нужен вид «поле.подполе» и оператор сравнения, иначе «example.com»
+    или «покажи http» считались бы фильтром.
+    """
+    stripped = text.strip()
+    if not stripped or CYRILLIC_RE.search(stripped):
+        return ""
+
+    if DISPLAY_FIELD_RE.search(stripped) and DISPLAY_OP_RE.search(stripped):
+        return stripped
+
+    # Одиночное поле без сравнения: «tcp.analysis.retransmission».
+    if " " not in stripped and stripped.count(".") >= 2 and DISPLAY_FIELD_RE.fullmatch(stripped):
+        return stripped
+
+    return ""
+
 # Окончания, на которые можно «нарастить» слово: «сайт» -> «сайта», «почта» -> «почты».
 RU_ENDINGS = {
     "а", "я", "у", "ю", "ы", "и", "е", "о", "ь",
@@ -422,6 +450,7 @@ class ParsedQuery:
     unknown_text: str = ""            # текст, который не был распознан
     warnings: list[str] = field(default_factory=list)  # предупреждения валидации
     host_terms: list[str] = field(default_factory=list)  # слова «сайт», «хост» из команды
+    raw_filter: str = ""              # фильтр Wireshark, набранный пользователем как есть
 
     def add_entity(self, entity: ExtractedEntity) -> None:
         self.entities.append(entity)
@@ -480,6 +509,10 @@ class NaturalLanguageFilterEngine:
         """
         if not command or not command.strip():
             return ParsedQuery(intent="help", unknown_text="Команда пуста.")
+
+        raw_filter = looks_like_display_filter(command)
+        if raw_filter:
+            return ParsedQuery(intent="show", raw_filter=raw_filter)
 
         query = ParsedQuery(intent="show")
         text = command.strip().lower()

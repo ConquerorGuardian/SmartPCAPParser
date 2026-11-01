@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Вопрос по использованию
+    url: https://github.com/Whitemoneydealer/SmartPCAPParser/blob/main/docs/FAQ.md
+    about: Частые вопросы — форматы, SmartScreen, большие файлы, приватность
+  - name: Примеры команд
+    url: https://github.com/Whitemoneydealer/SmartPCAPParser/blob/main/docs/EXAMPLES.md
+    about: Готовые фразы и фильтры Wireshark
+  - name: Уязвимость в безопасности
+    url: https://github.com/Whitemoneydealer/SmartPCAPParser/security/advisories/new
+    about: Приватное сообщение об уязвимости

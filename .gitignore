@@ -42,3 +42,4 @@ desktop.ini
 *.spec
 # Готовая папка для ручной загрузки релиза
 release/
+assets/logo.png

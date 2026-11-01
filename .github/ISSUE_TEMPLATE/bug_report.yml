@@ -1,0 +1,75 @@
+name: Сообщение об ошибке
+description: Приложение упало, зависло или показало не то, что ожидалось
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за отчёт. Перед отправкой проверьте:
+        [FAQ](../blob/main/docs/FAQ.md) и [известные ограничения](../blob/main/README.md#ограничения).
+        Уязвимости не публикуйте здесь — см. [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия приложения
+      description: Вывод `SmartPCAPParser.exe --version`
+      placeholder: "1.9.1"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Версия Windows и масштаб экрана
+      placeholder: "Windows 11 23H2, масштаб 125%"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Что вы сделали
+      description: По шагам — так ошибку проще повторить
+      placeholder: |
+        1. Открыл файл dump.pcap (12 МБ, снят tcpdump)
+        2. Ввёл «покажи сайт example.com»
+        3. Нажал Enter
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Что ожидали
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Что произошло
+      description: Текст ошибки целиком, скриншот, код возврата
+    validations:
+      required: true
+
+  - type: dropdown
+    id: file
+    attributes:
+      label: Можно ли приложить дамп?
+      options:
+        - "Да, приложу (без чувствительных данных)"
+        - "Нет, но опишу структуру файла"
+        - "Нет, файл нельзя передавать"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки
+      options:
+        - label: Запускал `--selftest`, код возврата 0
+        - label: Проблема повторяется на последней версии
+        - label: Проверил FAQ и раздел «Ограничения»

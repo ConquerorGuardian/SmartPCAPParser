@@ -232,7 +232,12 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         filter_string = generate_filter(query)
         reason = self._why_not_understood(text)
 
-        if reason:
+        if query.raw_filter and filter_string:
+            self.hint_label.configure(
+                text=f"Фильтр Wireshark как есть: {filter_string}",
+                text_color=theme_module.THEME["accent"],
+            )
+        elif reason:
             self.hint_label.configure(text=reason, text_color=theme_module.THEME["danger"])
         elif filter_string:
             self.hint_label.configure(
