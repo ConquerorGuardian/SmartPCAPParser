@@ -99,7 +99,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The only runtime dependency is `customtkinter`. Optional: `pip install
+The only runtime dependency is `customtkinter`. On Windows `run.bat` does the
+same as the commands above: it finds Python, checks `customtkinter` and prints
+the install command if it is missing. The exe does not need it.
+
+Optional: `pip install
 tkinterdnd2` enables dragging capture files into the window; everything else
 works without it.
 

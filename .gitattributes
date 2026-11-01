@@ -7,6 +7,9 @@
 *.toml text
 *.json text
 
+# .bat должен оставаться с CRLF: cmd.exe любит windows-переводы строк
+*.bat text eol=crlf
+
 *.pcap binary
 *.pcapng binary
 *.png binary
