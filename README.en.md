@@ -63,6 +63,10 @@ Download the latest `SmartPCAPParser-<version>-windows-x64.zip` from
 [Releases](../../releases), unpack anywhere and run `SmartPCAPParser.exe`.
 No Python required.
 
+The exe is not code-signed, so SmartScreen may ask whether to run it — normal
+for small open-source projects. You can verify a build with
+`SmartPCAPParser.exe --selftest` (no window, exit code 0).
+
 ### From source
 
 ```bash
