@@ -1,20 +1,21 @@
 """Сборка Windows-приложения (exe) через PyInstaller.
 
-Обычная сборка (папка, быстрый старт, рекомендуется для GitHub Releases):
+По умолчанию собирается **один файл** — его достаточно скачать и запустить:
 
-    python tools/build_exe.py
+    python tools/build_exe.py           # dist/SmartPCAPParser.exe
 
-Один файл (удобно переслать, но стартует медленнее):
+Папка (стартует быстрее, но это архив из сотен файлов):
 
-    python tools/build_exe.py --onefile
+    python tools/build_exe.py --onedir  # dist/SmartPCAPParser/ + zip
 
-Результат: `dist/SmartPCAPParser/...` и zip-архив
-`dist/SmartPCAPParser-<версия>-windows-x64.zip`.
+Рядом с артефактами кладётся `SHA256SUMS.txt` — чтобы скачавший мог
+проверить, что файл не побился при загрузке.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
@@ -25,7 +26,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
-SPEC = ROOT / "smartpcap.spec"
 APP_NAME = "SmartPCAPParser"
 
 
@@ -48,7 +48,7 @@ def version_tuple(version: str) -> tuple[int, int, int, int]:
 
 
 def write_version_file() -> Path:
-    """Файл ресурсов версии для свойств exe."""
+    """Файл ресурсов версии: его видно в свойствах exe."""
     BUILD.mkdir(exist_ok=True)
     version = app_version()
     numbers = version_tuple(version)
@@ -61,7 +61,7 @@ def write_version_file() -> Path:
   ),
   kids=[
     StringFileInfo([StringTable('040904B0', [
-      StringStruct('CompanyName', 'Whitemoneydealer'),
+      StringStruct('CompanyName', 'Nikita Belov'),
       StringStruct('FileDescription', 'Smart PCAP Parser — анализ pcap простыми словами'),
       StringStruct('FileVersion', '{version}'),
       StringStruct('InternalName', '{app}'),
@@ -79,9 +79,23 @@ def write_version_file() -> Path:
     return target
 
 
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def write_checksums(artifacts: list[Path]) -> Path:
+    target = DIST / "SHA256SUMS.txt"
+    lines = ["{}  {}".format(sha256(item), item.name) for item in artifacts]
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return target
+
+
 def make_zip(folder: Path) -> Path:
-    version = app_version()
-    archive = DIST / "{}-{}-windows-x64.zip".format(APP_NAME, version)
+    archive = DIST / "{}-{}-windows-x64.zip".format(APP_NAME, app_version())
     if archive.exists():
         archive.unlink()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zip_file:
@@ -92,42 +106,47 @@ def make_zip(folder: Path) -> Path:
     return archive
 
 
-def run_pyinstaller(onefile: bool) -> None:
+def run_pyinstaller(onedir: bool, splash: bool) -> None:
     env = dict(os.environ)
     env["SMARTPCAP_ROOT"] = str(ROOT)
-    env["SMARTPCAP_VERSION_FILE"] = str(write_version_file())
+    version_file = write_version_file()
 
-    if onefile:
-        command = [
-            sys.executable, "-m", "PyInstaller",
-            "--noconfirm", "--clean", "--onefile", "--windowed",
-            "--name", APP_NAME,
-            "--icon", str(ROOT / "assets" / "app.ico"),
-            "--version-file", env["SMARTPCAP_VERSION_FILE"],
-            "--collect-all", "customtkinter",
-            "--add-data", "{};tests".format(ROOT / "tests" / "sample_traffic.pcap"),
-            "--add-data", "{};assets".format(ROOT / "assets" / "app.ico"),
-            "--distpath", str(DIST),
-            "--workpath", str(BUILD),
-            str(ROOT / "main.py"),
-        ]
-    else:
-        command = [
-            sys.executable, "-m", "PyInstaller",
-            "--noconfirm", "--clean",
-            "--distpath", str(DIST),
-            "--workpath", str(BUILD),
-            str(SPEC),
-        ]
+    command = [
+        sys.executable, "-m", "PyInstaller",
+        "--noconfirm", "--clean", "--windowed",
+        "--name", APP_NAME,
+        "--icon", str(ROOT / "assets" / "app.ico"),
+        "--version-file", str(version_file),
+        "--collect-all", "customtkinter",
+        "--exclude-module", "pytest",
+        "--exclude-module", "mypy",
+        "--exclude-module", "ruff",
+        "--exclude-module", "setuptools",
+        "--exclude-module", "pip",
+        "--add-data", "{};tests".format(ROOT / "tests" / "sample_traffic.pcap"),
+        "--add-data", "{};tests".format(ROOT / "tests" / "sample_traffic.pcapng"),
+        "--add-data", "{};assets".format(ROOT / "assets" / "app.ico"),
+        "--distpath", str(DIST),
+        "--workpath", str(BUILD),
+    ]
+    if not onedir:
+        command.append("--onefile")
+    if splash and (ROOT / "assets" / "logo.png").exists():
+        command += ["--splash", str(ROOT / "assets" / "logo.png")]
+    command.append(str(ROOT / "main.py"))
 
-    print("Сборка:", " ".join(command[:4]), "...")
+    print("Сборка:", "onedir" if onedir else "onefile", "...")
     subprocess.run(command, cwd=ROOT, env=env, check=True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Собрать exe приложения")
-    parser.add_argument("--onefile", action="store_true",
-                        help="собрать один exe вместо папки")
+    parser.add_argument("--onedir", action="store_true",
+                        help="собрать папку вместо одного файла")
+    parser.add_argument("--both", action="store_true",
+                        help="собрать и один файл, и папку (для релиза)")
+    parser.add_argument("--splash", action="store_true",
+                        help="показывать заставку, пока распаковывается onefile")
     args = parser.parse_args()
 
     try:
@@ -141,35 +160,45 @@ def main() -> int:
         print("Нет assets/app.ico — пересоздайте иконку: python tools/make_icon.py")
         return 1
 
-    # Чистим только результат, чтобы сборка была воспроизводимой.
     if DIST.exists():
         shutil.rmtree(DIST, ignore_errors=True)
 
-    try:
-        run_pyinstaller(args.onefile)
-    except subprocess.CalledProcessError as exc:
-        print("Сборка не удалась, код", exc.returncode)
-        return exc.returncode
+    modes: list[bool] = []
+    if args.both:
+        modes = [False, True]      # сначала один файл, потом папка
+    else:
+        modes = [args.onedir]
 
-    if args.onefile:
-        exe = DIST / "{}.exe".format(APP_NAME)
-        print("Готово:", exe, "{:.1f} МБ".format(exe.stat().st_size / (1024 * 1024)))
-        archive = DIST / "{}-{}-windows-x64-onefile.zip".format(APP_NAME, app_version())
-        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            zip_file.write(exe, exe.name)
-        print("Архив:", archive)
-        return 0
+    artifacts: list[Path] = []
+    for onedir in modes:
+        try:
+            run_pyinstaller(onedir, args.splash)
+        except subprocess.CalledProcessError as exc:
+            print("Сборка не удалась, код", exc.returncode)
+            return exc.returncode
 
-    folder = DIST / APP_NAME
-    if not folder.exists():
-        print("Папка сборки не появилась:", folder)
-        return 1
+        if onedir:
+            folder = DIST / APP_NAME
+            if not folder.exists():
+                print("Папка сборки не появилась:", folder)
+                return 1
+            archive = make_zip(folder)
+            artifacts.append(archive)
+            print("Готово: {} ({:.1f} МБ)".format(
+                archive, archive.stat().st_size / (1024 * 1024)))
+        else:
+            exe = DIST / "{}.exe".format(APP_NAME)
+            if not exe.exists():
+                print("exe не появился:", exe)
+                return 1
+            artifacts.append(exe)
+            print("Готово: {} ({:.1f} МБ)".format(
+                exe, exe.stat().st_size / (1024 * 1024)))
 
-    archive = make_zip(folder)
-    size = sum(path.stat().st_size for path in folder.rglob("*") if path.is_file())
-    print("Готово:", folder, "{:.1f} МБ".format(size / (1024 * 1024)))
-    print("Архив:", archive, "{:.1f} МБ".format(archive.stat().st_size / (1024 * 1024)))
-    print("Проверка: dist\\{}\\{}.exe --selftest".format(APP_NAME, APP_NAME))
+    checksums = write_checksums(artifacts)
+    print("Контрольные суммы:", checksums)
+    print("Проверка: python tools/check_exe.py " + " ".join(
+        item.as_posix() for item in artifacts))
     return 0
 
 

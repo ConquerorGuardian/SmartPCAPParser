@@ -52,20 +52,37 @@ be copied into Wireshark.
   and last folder are remembered between runs.
 - Large captures are read in a background thread with a progress bar and a
   Cancel button; the table pages through results of any size.
-- 171 checks across 12 test modules, including GUI smoke tests and golden
+- 175 checks across 12 test modules, including GUI smoke tests and golden
   filter tests.
 
 ## Install and run
 
 ### Ready-made Windows build
 
-Download the latest `SmartPCAPParser-<version>-windows-x64.zip` from
-[Releases](../../releases), unpack anywhere and run `SmartPCAPParser.exe`.
-No Python required.
+The whole program is **one file — no installer, no Python**. Grab it from
+[Releases](../../releases):
+
+| File | What it is | Size |
+| --- | --- | --- |
+| **`SmartPCAPParser.exe`** | everything in a single file: download, run | ~13 MB |
+| `SmartPCAPParser-<version>-windows-x64.zip` | the same app as a folder (starts a bit faster; useful when a policy blocks single-file executables) | ~13 MB |
+| `SHA256SUMS.txt` | checksums to verify the download | 1 KB |
+
+Run `SmartPCAPParser.exe` by double-clicking it. Open a capture with the
+“Открыть файл” button, by dropping a file into the window, or like this:
+
+```bash
+SmartPCAPParser.exe C:\dumps\capture.pcap
+```
+
+A capture dropped onto the `SmartPCAPParser.exe` icon opens as well.
 
 The exe is not code-signed, so SmartScreen may ask whether to run it — normal
 for small open-source projects. You can verify a build with
 `SmartPCAPParser.exe --selftest` (no window, exit code 0).
+
+Updating is just replacing the exe: settings (theme, command history, recent
+files) live separately and survive the update.
 
 ### From source
 
@@ -85,6 +102,7 @@ works without it.
 ```bash
 python main.py --version
 python main.py --demo
+python main.py dump.pcap          # open a capture in the window
 python main.py --file tests/sample_traffic.pcap -c "покажи http трафик"
 python main.py --file tests/sample_traffic.pcap --follow 6 --hex
 python main.py --selftest
@@ -95,11 +113,16 @@ python main.py --selftest
 ```bash
 pip install -r requirements-dev.txt
 python tools/make_icon.py        # optional: regenerate assets/app.ico (needs Pillow)
-python tools/build_exe.py        # dist/SmartPCAPParser/ + zip
-dist/SmartPCAPParser/SmartPCAPParser.exe --selftest
+python tools/build_exe.py        # dist/SmartPCAPParser.exe — single file
+python tools/build_exe.py --onedir   # dist/SmartPCAPParser/ + zip
+python tools/build_exe.py --both     # both, the way CI does it
+python tools/check_exe.py dist/SmartPCAPParser.exe   # --version and --selftest
+dist/SmartPCAPParser.exe --selftest
 ```
 
-`python tools/build_exe.py --onefile` produces a single exe instead of a folder.
+`dist/SHA256SUMS.txt` is written next to the artifacts. Pushing a `v*` tag makes
+GitHub Actions run the tests, build both variants, self-test each exe and
+publish them to Releases.
 
 ## Tests
 

@@ -926,6 +926,45 @@ def run_udp_stream_flow() -> None:
     print("PASS: run_udp_stream_flow")
 
 
+def run_initial_file_flow() -> None:
+    """Файл, переданный в конструктор, открывается сам (аргумент exe)."""
+    import time
+
+    from gui.app import SmartPcapApp
+
+    app = SmartPcapApp(initial_file=str(SAMPLE))
+    app.withdraw()
+    try:
+        assert "Smart PCAP Parser" in app.title(), app.title()
+        deadline = time.time() + 15
+        while time.time() < deadline and not app.packets:
+            app.update()
+            time.sleep(0.05)
+        assert app.pcap_path == SAMPLE, app.pcap_path
+        assert len(app.packets) == 13, len(app.packets)
+        assert len(app.tree.get_children()) >= 13, len(app.tree.get_children())
+        assert SAMPLE.name in app.title(), app.title()
+    finally:
+        shutdown(app)
+    print("PASS: run_initial_file_flow")
+
+
+def run_missing_file_flow() -> None:
+    """Несуществующий файл из аргументов не роняет окно."""
+    from gui.app import SmartPcapApp
+
+    app = SmartPcapApp()
+    app.withdraw()
+    try:
+        app._open_initial_file(Path("нет-такого-файла.pcap"))
+        app.update()
+        assert app.packets == []
+        assert "не найден" in app.status_label.cget("text").lower()
+    finally:
+        shutdown(app)
+    print("PASS: run_missing_file_flow")
+
+
 def display_available() -> bool:
     """Проверяет, можно ли вообще открыть окно (на серверах без экрана — нет)."""
     try:
@@ -955,7 +994,8 @@ if __name__ == "__main__":
         run_flow, run_stream_flow, run_stats_flow, run_theme_flow, run_verdict_flow,
         run_search_flow, run_export_flow, run_layout_flow, run_big_file_flow,
         run_lazy_stream_flow, run_udp_stream_flow, run_pagination_flow,
-        run_recent_flow, run_cancel_load_flow,
+        run_recent_flow, run_cancel_load_flow, run_initial_file_flow,
+        run_missing_file_flow,
     ]
     failed = 0
     for flow in flows:

@@ -142,6 +142,44 @@ def test_version_is_single_source():
     print("PASS: test_version_is_single_source")
 
 
+def test_cli_accepts_file_to_open():
+    """`smartpcap dump.pcap` и `--open dump.pcap` дают один и тот же путь."""
+    import main as entry
+
+    parser = entry.build_parser()
+
+    positional = parser.parse_args(["C:/dumps/a.pcap"])
+    assert positional.path == "C:/dumps/a.pcap", positional.path
+    assert positional.open_path == "", positional.open_path
+
+    flag = parser.parse_args(["--open", "C:/dumps/b.pcapng"])
+    assert flag.open_path == "C:/dumps/b.pcapng", flag.open_path
+    assert flag.path == "", flag.path
+
+    empty = parser.parse_args([])
+    assert empty.path == "" and empty.open_path == ""
+    print("PASS: test_cli_accepts_file_to_open")
+
+
+def test_cli_version_prints_version():
+    """`--version` печатает версию из parser/__init__.py."""
+    import subprocess
+    import sys
+
+    import parser
+
+    result = subprocess.run(
+        [sys.executable, "main.py", "--version"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    assert result.returncode == 0, result.stderr
+    assert parser.__version__ in result.stdout, result.stdout
+    print("PASS: test_cli_version_prints_version")
+
+
 def main() -> int:
     tests = [
         test_golden_filters,
@@ -150,6 +188,8 @@ def main() -> int:
         test_filter_validate,
         test_selftest_entrypoint,
         test_version_is_single_source,
+        test_cli_accepts_file_to_open,
+        test_cli_version_prints_version,
     ]
 
     failed = 0

@@ -37,3 +37,6 @@ samples/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# PyInstaller кладёт .spec рядом с проектом
+*.spec

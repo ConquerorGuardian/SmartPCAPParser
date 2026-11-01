@@ -70,6 +70,7 @@ from gui.utils import (  # noqa: E402
     resource_path,
     table_limit,
 )
+from parser import __version__ as APP_VERSION  # noqa: E402
 from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
 from parser.matcher import compile_filter  # noqa: E402
@@ -98,7 +99,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
     _recent_placeholder = RECENT_PLACEHOLDER
 
-    def __init__(self) -> None:
+    def __init__(self, initial_file: str | Path | None = None) -> None:
         # Настройки читаем до построения интерфейса: тема и история
         # должны примениться сразу, без мигания.
         self.settings = load_settings()
@@ -111,7 +112,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
         super().__init__()
 
-        self.title(APP_TITLE)
+        self.title("{} {}".format(APP_TITLE, APP_VERSION))
         self.geometry(self.settings["geometry"] or "1380x820")
         self.minsize(1080, 620)
         self.configure(fg_color=theme_module.THEME["bg"])
@@ -158,6 +159,26 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._apply_window_icon()
         self._enable_drop()
+
+        # Файл, переданный аргументом (или перетащенный на иконку exe),
+        # открываем после того, как окно уже нарисовалось.
+        if initial_file:
+            self.after(150, lambda: self._open_initial_file(Path(initial_file)))
+
+    def _open_initial_file(self, path: Path) -> None:
+        """Открывает файл из аргументов командной строки."""
+        if not path.exists():
+            self._set_status("Файл не найден: {}".format(path))
+            return
+        self._load_path(path)
+
+    def _update_title(self) -> None:
+        """В заголовке окна — имя открытого файла (видно и на панели задач)."""
+        base = "{} {}".format(APP_TITLE, APP_VERSION)
+        if self.pcap_path is not None:
+            self.title("{} — {}".format(base, Path(self.pcap_path).name))
+        else:
+            self.title(base)
 
     def _on_command_key(self, event=None) -> None:
         """Показывает подсказку; стёрли команду — возвращает все пакеты."""
@@ -377,6 +398,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self.file_label.configure(text=path.name)
         self.packet_label.configure(text=f"{len(packets)} пакетов · {path.suffix}")
         self._remember_recent(path)
+        self._update_title()
 
         if hasattr(self, "empty_state"):
             self.empty_state.grid_remove()
@@ -781,8 +803,9 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self._load_path(Path(items[0]))
 
 
-def main() -> None:
-    app = SmartPcapApp()
+def main(initial_file: str | Path | None = None) -> None:
+    """Запускает окно. `initial_file` — сразу открыть этот дамп."""
+    app = SmartPcapApp(initial_file=initial_file)
     app.mainloop()
 
 

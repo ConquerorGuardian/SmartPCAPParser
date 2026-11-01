@@ -22,6 +22,7 @@ from gui.utils import (
     decode_tcp_flags,
     hex_dump,
 )
+from parser import __version__ as APP_VERSION
 from parser.pcap_reader import read_payloads
 from parser.stats import format_bytes
 from parser.streams import (
@@ -558,6 +559,15 @@ class DialogsMixin:
         textbox.pack(fill="both", expand=True, padx=16, pady=12)
         textbox.insert("1.0", HELP_TEXT)
         textbox.configure(state="disabled")
+
+        ctk.CTkLabel(
+            window,
+            text="Smart PCAP Parser {}  ·  MIT  ·  "
+                 "github.com/Whitemoneydealer/SmartPCAPParser".format(APP_VERSION),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=theme_module.THEME["muted"],
+            anchor="w",
+        ).pack(fill="x", padx=16, pady=(0, 12))
 
         window.after(50, window.lift)
         window.after(100, window.focus_force)

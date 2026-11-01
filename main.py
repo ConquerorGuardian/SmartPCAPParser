@@ -223,21 +223,15 @@ def run_selftest() -> int:
     return 0 if not failures else 1
 
 
-def main() -> int:
-    gui_only = os.environ.get("SMARTPCAP_GUI_ONLY") == "1"
-
-    # Консоль Windows может не знать символов вроде "·" — не падаем на этом.
-    try:
-        sys.stdout.reconfigure(errors="replace")
-    except (AttributeError, ValueError):
-        pass
-
+def build_parser() -> argparse.ArgumentParser:
+    """Аргументы командной строки (вынесено для тестов)."""
     parser = argparse.ArgumentParser(
         prog="smartpcap",
         description="SmartPCAPParser — фильтры Wireshark из обычных слов",
         epilog=(
             "Примеры:\n"
             "  smartpcap                                  открыть приложение\n"
+            "  smartpcap dump.pcap                        открыть файл в окне\n"
             "  smartpcap --file dump.pcap -c \"покажи http трафик\"\n"
             "  smartpcap --file dump.pcap --follow 6 --hex\n"
             "  smartpcap --demo\n"
@@ -265,7 +259,29 @@ def main() -> int:
                         help="проверить сборку без окна и выйти")
     parser.add_argument("--cli", action="store_true",
                         help="не запускать GUI")
+    parser.add_argument("path", nargs="?", default="", metavar="ФАЙЛ",
+                        help="открыть .pcap/.pcapng в окне приложения")
+    parser.add_argument("--open", dest="open_path", default="", metavar="ФАЙЛ",
+                        help="то же, что и просто указать файл")
+    return parser
 
+
+def main() -> int:
+    # У exe без консоли (--windowed) sys.stdout/sys.stderr равны None,
+    # и любой print падал бы с AttributeError. Подменяем на «в никуда»:
+    # код возврата при этом остаётся рабочим.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
+    # Консоль Windows может не знать символов вроде "·" — не падаем на этом.
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+    parser = build_parser()
     args = parser.parse_args()
 
     if args.selftest:
@@ -295,12 +311,12 @@ def main() -> int:
         parser.print_help()
         return 0
 
-    if gui_only and (args.file or args.command or args.demo or args.cli):
-        # Собранный GUI-exe без консоли: аргументы есть, но печатать некуда.
-        return run_selftest()
-
+    # `SmartPCAPParser.exe dump.pcap` (или файл перетащили на иконку)
+    # открывает окно сразу с этим файлом. Ошибку в пути покажет окно.
     from gui.app import main as gui_main
-    gui_main()
+
+    initial_file = args.open_path or args.path
+    gui_main(initial_file or None)
     return 0
 
 

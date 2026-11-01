@@ -30,29 +30,53 @@ jobs:
       - name: Run tests
         run: python -m tests.run_all
 
-      - name: Build exe
-        run: python tools/build_exe.py
+      - name: Build exe (single file + portable folder)
+        run: python tools/build_exe.py --both
 
       - name: Self-test the packaged app
+        run: |
+          python tools/check_exe.py dist/SmartPCAPParser.exe dist/SmartPCAPParser/SmartPCAPParser.exe
+
+      - name: Show checksums and sizes
         shell: pwsh
         run: |
-          $exe = "dist\SmartPCAPParser\SmartPCAPParser.exe"
-          if (-not (Test-Path $exe)) { throw "exe не собран: $exe" }
-          & $exe --selftest
-          if ($LASTEXITCODE -ne 0) { throw "selftest упал с кодом $LASTEXITCODE" }
-          $report = Join-Path $env:TEMP "smartpcap_selftest.txt"
-          if (Test-Path $report) { Get-Content $report }
+          Get-Content dist\SHA256SUMS.txt
+          Get-ChildItem dist -File | Select-Object Name, @{n="МБ";e={[math]::Round($_.Length/1MB,1)}}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmartPCAPParser-windows-x64
-          path: dist/*.zip
+          path: |
+            dist/SmartPCAPParser.exe
+            dist/*.zip
+            dist/SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.zip
+          files: |
+            dist/SmartPCAPParser.exe
+            dist/*.zip
+            dist/SHA256SUMS.txt
           generate_release_notes: true
+          body: |
+            ## Как запустить
+
+            1. Скачайте **`SmartPCAPParser.exe`** (одним файлом, ~13 МБ).
+            2. Запустите — установка не нужна, Python не нужен.
+            3. Откройте дамп `.pcap`/`.pcapng` кнопкой «Открыть файл» или
+               перетащите файл на `SmartPCAPParser.exe`.
+
+            SmartScreen может спросить подтверждение: exe не подписан
+            сертификатом — это обычное поведение для небольших открытых
+            проектов. Проверить сборку можно так:
+            `SmartPCAPParser.exe --selftest`.
+
+            Если антивирус или корпоративная политика не дают запускать
+            один файл, скачайте `SmartPCAPParser-<версия>-windows-x64.zip`
+            — это та же программа папкой.
+
+            Целостность файлов — в `SHA256SUMS.txt`.

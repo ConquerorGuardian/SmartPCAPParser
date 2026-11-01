@@ -13,15 +13,32 @@ Wireshark и сразу показывает подходящие пакеты �
 
 ## Скачать и запустить
 
-**Готовый exe (Windows, Python не нужен):** скачайте
-`SmartPCAPParser-<версия>-windows-x64.zip` со страницы
-[Releases](../../releases), распакуйте в любую папку и запустите
-`SmartPCAPParser.exe`.
+Готовая программа для Windows — **один файл, без установки и без Python**.
+Скачайте со страницы [Releases](../../releases):
+
+| Файл | Что это | Размер |
+| --- | --- | --- |
+| **`SmartPCAPParser.exe`** | вся программа одним файлом: скачал → запустил | ~13 МБ |
+| `SmartPCAPParser-<версия>-windows-x64.zip` | та же программа папкой (стартует чуть быстрее; пригодится, если политика запрещает запуск одного файла) | ~13 МБ |
+| `SHA256SUMS.txt` | контрольные суммы, чтобы проверить загрузку | 1 КБ |
+
+Скачали `SmartPCAPParser.exe` — запускайте двойным кликом. Открыть дамп
+можно кнопкой «Открыть файл», перетаскиванием в окно или так:
+
+```bash
+SmartPCAPParser.exe C:\dumps\capture.pcap
+```
+
+Файл, перетащенный на иконку `SmartPCAPParser.exe`, тоже открывается.
 
 exe не подписан сертификатом, поэтому SmartScreen может спросить
 «Запустить всё равно?» — это обычное поведение для небольших открытых
 проектов. Проверить сборку можно командой
 `SmartPCAPParser.exe --selftest` (запуск без окна, код возврата 0).
+
+Обновление — просто скачать новый `SmartPCAPParser.exe` и заменить старый:
+настройки (тема, история команд, недавние файлы) хранятся отдельно и не
+теряются.
 
 **Из исходников:**
 
@@ -158,6 +175,7 @@ ip.addr==192.168.1.10 and tcp.port==80
 ```bash
 python main.py --version     # версия
 python main.py --selftest    # самопроверка: чтение, фильтры, потоки
+python main.py dump.pcap     # открыть файл в окне приложения
 
 # разбор примеров команд
 python main.py --demo
@@ -176,13 +194,16 @@ python main.py --file tests/sample_traffic.pcap --follow 6 --dir client
 ```bash
 pip install -r requirements-dev.txt
 python tools/make_icon.py      # перерисовать assets/app.ico (нужен Pillow)
-python tools/build_exe.py      # dist/SmartPCAPParser/ + zip
-dist/SmartPCAPParser/SmartPCAPParser.exe --selftest
+python tools/build_exe.py      # dist/SmartPCAPParser.exe — один файл
+python tools/build_exe.py --onedir   # dist/SmartPCAPParser/ + zip
+python tools/build_exe.py --both     # оба варианта (так делает CI)
+python tools/check_exe.py dist/SmartPCAPParser.exe   # --version и --selftest
+dist/SmartPCAPParser.exe --selftest
 ```
 
-`python tools/build_exe.py --onefile` собирает один exe вместо папки.
-Сборка по тегу `v*` автоматически делается в GitHub Actions
-(`.github/workflows/build.yml`) и прикрепляется к Releases.
+Рядом с артефактами появляется `dist/SHA256SUMS.txt`. Сборка по тегу `v*`
+автоматически делается в GitHub Actions (`.github/workflows/build.yml`):
+тесты, оба варианта, самопроверка каждого exe и публикация в Releases.
 
 ## Скорость
 
@@ -547,7 +568,7 @@ gui/dialogs.py       ── справка, детали пакета, пото�
 python -m tests.run_all
 ```
 
-Сейчас это 171 проверка в 12 модулях — все проходят. Есть и golden-тесты
+Сейчас это 175 проверок в 12 модулях — все проходят. Есть и golden-тесты
 (`tests/test_golden.py`): таблица «фильтр → номера кадров», которая ловит
 незаметные изменения семантики фильтров.
 
@@ -627,7 +648,6 @@ python tools/backup.py --list                          # что уже сохр�
 SmartPCAPParser/
 ├── main.py                 точка входа (GUI, консоль, --selftest)
 ├── pyproject.toml           метаданные, ruff, pytest, mypy
-├── smartpcap.spec           сборка exe (PyInstaller)
 ├── CHANGELOG.md
 ├── README.en.md
 ├── assets/
@@ -671,7 +691,8 @@ SmartPCAPParser/
 │   ├── test_gui_smoke.py
 │   └── run_all.py
 ├── tools/
-│   ├── build_exe.py         сборка exe + zip
+│   ├── build_exe.py         сборка exe (один файл или папка) + суммы
+│   ├── check_exe.py         проверка собранного exe (--version, --selftest)
 │   ├── make_icon.py         перерисовка иконки (Pillow)
 │   ├── backup.py            резервная копия проекта
 │   ├── bench.py             замер скорости
