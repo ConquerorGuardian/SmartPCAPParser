@@ -35,7 +35,7 @@ NOTE = """ЧТО ПРИКРЕПИТЬ К РЕЛИЗУ v{version}
   Tag:      v{version}
   Title:    Smart PCAP Parser {version}
   Файлы:    перетащите из этой папки
-  Описание: скопируйте из docs/RELEASE-NOTES.md
+  Описание: скопируйте из internal/RELEASE-NOTES.md
 
 ПРОВЕРКА ПЕРЕД ЗАГРУЗКОЙ
 ------------------------

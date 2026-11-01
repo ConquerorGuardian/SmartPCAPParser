@@ -44,7 +44,7 @@ if ($branch -ne "main") {
 if (-not $SkipChecks) {
     $tcp = Test-NetConnection github.com -Port 443 -WarningAction SilentlyContinue
     if (-not $tcp.TcpTestSucceeded) {
-        Fail "github.com:443 недоступен. Смотрите docs/GITHUB-ACCESS.md (WARP, VPN, мобильный интернет)"
+        Fail "github.com:443 недоступен. Смотрите internal/GITHUB-ACCESS.md (WARP, VPN, мобильный интернет)"
     }
     Write-Host "Сеть до github.com:443 есть."
 }
@@ -62,7 +62,7 @@ if ($existing) {
 Write-Host "Отправляю ветку main..."
 git push -u origin main
 if ($LASTEXITCODE -ne 0) {
-    Fail "push не прошёл. Для HTTPS нужен Personal Access Token, для SSH — ключ (см. docs/GITHUB-ACCESS.md)"
+    Fail "push не прошёл. Для HTTPS нужен Personal Access Token, для SSH — ключ (см. internal/GITHUB-ACCESS.md)"
 }
 
 Write-Host "Ставлю тег $Tag..."

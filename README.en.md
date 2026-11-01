@@ -174,7 +174,7 @@ phrase -> engine -> filters -> matcher -> pcap_reader -> GUI
 | `gui/stats_view.py`, `gui/chart.py` | statistics tab and chart |
 | `gui/dialogs.py`, `gui/help_text.py` | help, details, stream, verdict |
 
-More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Every module starts with a short description of what it does.
 
 ## Limitations
 
@@ -189,7 +189,7 @@ More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Documentation
 
 [Examples](docs/EXAMPLES.md) · [FAQ](docs/FAQ.md) ·
-[Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) ·
+[Contributing](CONTRIBUTING.md) ·
 [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 ## License

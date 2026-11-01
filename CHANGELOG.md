@@ -18,8 +18,8 @@
 - Готовый фильтр Wireshark можно вставить как есть: `tcp.port==443`,
   `ip.addr==10.0.0.1 and http`, `frame.len > 1000`. Незнакомое поле даёт
   список поддерживаемых, а не пустую таблицу.
-- Документация: `docs/FAQ.md`, `docs/EXAMPLES.md`, `docs/ARCHITECTURE.md`,
-  `CONTRIBUTING.md`, `SECURITY.md`, шаблоны issue.
+- Документация: `docs/FAQ.md`, `docs/EXAMPLES.md`, `CONTRIBUTING.md`,
+  `SECURITY.md`, шаблоны issue.
 
 ### Изменено
 

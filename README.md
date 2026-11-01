@@ -360,12 +360,9 @@ python -m tests.test_corpus      # прогнать через конвейер
   получаются
 - [docs/FAQ.md](docs/FAQ.md): SmartScreen, форматы, приватность, большие
   файлы
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): устройство кода
-- [CONTRIBUTING.md](CONTRIBUTING.md): сборка, тесты, идеи
-- [SECURITY.md](SECURITY.md): уязвимости и модель угроз
+- [CONTRIBUTING.md](CONTRIBUTING.md): как собрать и запустить тесты
+- [SECURITY.md](SECURITY.md): куда писать про уязвимости
 - [CHANGELOG.md](CHANGELOG.md): что менялось
-- [docs/PUBLISH.md](docs/PUBLISH.md): как выложить на GitHub
-- [docs/CHECKLIST.md](docs/CHECKLIST.md): приёмка перед публикацией
 
 ## Структура
 
@@ -378,11 +375,12 @@ SmartPCAPParser/
 ├── gui/                    окно, таблица, график, диалоги, справка
 ├── tests/                  тесты и дампы
 ├── tools/                  сборка exe, бэкап, бенчмарк, публикация
-├── docs/                   примеры, FAQ, архитектура, скриншоты
+├── docs/                   примеры, FAQ, скриншоты
 └── assets/app.ico          иконка
 ```
 
-Подробнее по файлам в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Каждый модуль начинается с короткого описания, что он делает. Этого хватает,
+чтобы найти нужное место.
 
 ## Лицензия
 

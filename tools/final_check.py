@@ -29,9 +29,7 @@ REQUIRED = [
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
     "assets/app.ico",
-    "docs/FAQ.md", "docs/EXAMPLES.md", "docs/ARCHITECTURE.md",
-    "docs/PUBLISH.md", "docs/GITHUB-ACCESS.md", "docs/CHECKLIST.md",
-    "docs/RELEASE-NOTES.md",
+    "docs/FAQ.md", "docs/EXAMPLES.md",
     "tools/build_exe.py", "tools/check_exe.py", "tools/publish.ps1",
     "tools/backup.py", "tools/make_icon.py", "tools/bench.py",
     "tools/make_release_folder.py", "tools/make_friend_kit.py",
@@ -40,9 +38,7 @@ REQUIRED = [
 
 DOCS = [
     "README.md", "README.en.md", "CHANGELOG.md", "CONTRIBUTING.md",
-    "SECURITY.md", "docs/PUBLISH.md", "docs/GITHUB-ACCESS.md",
-    "docs/CHECKLIST.md", "docs/FAQ.md", "docs/EXAMPLES.md",
-    "docs/ARCHITECTURE.md", "docs/RELEASE-NOTES.md",
+    "SECURITY.md", "docs/FAQ.md", "docs/EXAMPLES.md",
 ]
 
 IMAGES = [
@@ -155,7 +151,7 @@ def check_git() -> None:
     check("в git нет файлов больше 2 МБ", not large, str(large))
 
     tracked = set(git("ls-files").splitlines())
-    for junk in ("dist/SmartPCAPParser.exe", "build/", "backups/"):
+    for junk in ("dist/SmartPCAPParser.exe", "build/", "backups/", "internal/"):
         check("{} не в git".format(junk), not any(t.startswith(junk) for t in tracked))
 
 
