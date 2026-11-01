@@ -23,7 +23,7 @@ BACKUPS = ROOT / "backups"
 SKIP_DIRS = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
              "build", "dist", "backups", "samples", ".venv", "venv",
              ".pylibs", ".tmp", "tmp_pip", ".bench", "node_modules",
-             ".idea", ".vscode"}
+             ".idea", ".vscode", "release"}
 SKIP_SUFFIXES = {".pyc", ".pyo", ".pcap", ".pcapng", ".gz", ".exe", ".dll"}
 
 
