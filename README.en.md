@@ -68,6 +68,12 @@ The whole program is **one file — no installer, no Python**. Grab it from
 | `SmartPCAPParser-<version>-windows-x64.zip` | the same app as a folder (starts a bit faster; useful when a policy blocks single-file executables) | ~13 MB |
 | `SHA256SUMS.txt` | checksums to verify the download | 1 KB |
 
+Direct link to the latest build (safe to share or bookmark):
+
+```
+https://github.com/Whitemoneydealer/SmartPCAPParser/releases/latest/download/SmartPCAPParser.exe
+```
+
 Run `SmartPCAPParser.exe` by double-clicking it. Open a capture with the
 “Открыть файл” button, by dropping a file into the window, or like this:
 

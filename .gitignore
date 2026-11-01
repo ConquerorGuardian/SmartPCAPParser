@@ -38,5 +38,7 @@ samples/
 Thumbs.db
 desktop.ini
 
-# PyInstaller ����� .spec ����� � ��������
+# PyInstaller кладёт .spec рядом с проектом
 *.spec
+# Готовая папка для ручной загрузки релиза
+release/

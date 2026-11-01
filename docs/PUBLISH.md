@@ -55,6 +55,16 @@ git push origin v1.9.1
 `https://github.com/Whitemoneydealer/SmartPCAPParser/releases` появится
 релиз, откуда один файл `SmartPCAPParser.exe` скачивается одним кликом.
 
+### Если релиз нужно оформить вручную
+
+```bash
+python tools/make_release_folder.py     # папка release/ с exe, zip, суммами, LICENSE
+```
+
+В `release/` лежит `ОТПРАВИТЬ-В-РЕЛИЗ.txt` — что прикрепить, какой тег и
+заголовок, откуда взять описание (`docs/RELEASE-NOTES.md`). Загружать
+через **Releases → Draft a new release** и перетащить файлы.
+
 ## 5. Оформить страницу репозитория
 
 - **Description**: `Фильтры Wireshark из обычных слов: анализ pcap/pcapng без tshark и ИИ`
