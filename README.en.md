@@ -48,8 +48,11 @@ pcap viewer with a human front end.
 - Statistics: traffic chart, protocol hierarchy, conversations, endpoints,
   hosts, on the whole file or on the current filter.
 - Plain-language verdict with findings, each one can be applied as a filter.
+- Simple mode on first run: open a file, type a phrase, Enter. Six protocol
+  buttons, the rest under "Ещё…", no side cards. One switch brings back the
+  full layout: examples, 22 buttons and the verdict strip.
 - Dark and light theme, settings and recent files survive restarts.
-- 178 checks in 12 test modules, 54 real captures in the corpus run.
+- 180 checks in 12 test modules, 54 real captures in the corpus run.
 
 ## Install and run
 

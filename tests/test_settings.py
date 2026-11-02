@@ -113,6 +113,15 @@ def test_recent_files_cleanup():
     print("PASS: test_recent_files_cleanup")
 
 
+def test_simple_mode_flag():
+    """Простой режим: по умолчанию включён, мусор в поле не ломает запуск."""
+    assert DEFAULTS["simple_mode"] is True
+    assert normalize({})["simple_mode"] is True
+    assert normalize({"simple_mode": False})["simple_mode"] is False
+    assert normalize({"simple_mode": "нет"})["simple_mode"] is True
+    print("PASS: test_simple_mode_flag")
+
+
 def main() -> int:
     tests = [
         test_defaults_when_missing,
@@ -121,6 +130,7 @@ def main() -> int:
         test_history_cleanup,
         test_recent_files_cleanup,
         test_save_to_unwritable_path,
+        test_simple_mode_flag,
     ]
 
     failed = 0

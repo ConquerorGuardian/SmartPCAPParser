@@ -47,7 +47,14 @@ class DialogsMixin:
     def _show_verdict_window(self) -> None:
         verdict = getattr(self, "verdict", None)
         if verdict is None:
-            self._set_status("Вердикт появится после загрузки файла.")
+            if not self.packets:
+                self._set_status("Сначала откройте файл, потом проверяйте.")
+                return
+            # Пакеты есть, а вердикт ещё не считали: считаем по требованию.
+            self._refresh_verdict()
+            verdict = getattr(self, "verdict", None)
+        if verdict is None:
+            self._set_status("Вердикт не сложился: в файле нет пакетов для разбора.")
             return
 
         window = ctk.CTkToplevel(self)

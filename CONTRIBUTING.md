@@ -1,4 +1,4 @@
-# Участие
+﻿# Участие
 
 Ошибки, идеи и правки в словаре протоколов приветствуются.
 
@@ -16,7 +16,7 @@ python main.py
 ## Проверить
 
 ```bash
-python -m tests.run_all      # 178 проверок
+python -m tests.run_all      # 180 проверок
 ruff check .                 # линтер, строки до 100 символов
 python tools/build_exe.py --both   # один файл и папка с zip
 ```

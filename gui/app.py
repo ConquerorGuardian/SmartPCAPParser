@@ -143,9 +143,11 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self._search_text = ""
         self._current_view = "packets"
         self._last_details_window = None
+        self.simple_mode = bool(self.settings.get("simple_mode", True))
 
         self._build_ui()
         self._apply_columns(self.settings.get("columns") or {})
+        self._apply_simple_mode()
         self._init_stats_menus()
         self.stats_scope.set(self.settings.get("stats_scope", "Все пакеты"))
         self._refresh_recent_menu()
@@ -598,6 +600,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             "columns": self._collect_columns(),
             "stats_scope": self.stats_scope.get(),
             "recent": list(self._recent),
+            "simple_mode": bool(getattr(self, "simple_mode", True)),
         }
 
     # ------------------------------------------------------------------
@@ -658,11 +661,21 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             self.destroy()
 
     # ------------------------------------------------------------------
-    # Тема
+    # Тема и режим интерфейса
     # ------------------------------------------------------------------
     def _toggle_theme(self) -> None:
         target = "light" if self.theme_name == "dark" else "dark"
         self._set_theme(target)
+
+    def _toggle_simple_mode(self) -> None:
+        """Простой режим прячет примеры, лишние кнопки и панель вердикта."""
+        self.simple_mode = bool(self.simple_switch.get())
+        self._apply_simple_mode()
+        save_settings(self._current_settings())
+        if self.simple_mode:
+            self._set_status("Простой режим: только файл, команда и шесть фильтров.")
+        else:
+            self._set_status("Опытный режим: все панели на виду.")
 
     def _set_theme(self, name: str) -> None:
         # Палитра живёт в gui/theme.py: меняем её через модуль, иначе

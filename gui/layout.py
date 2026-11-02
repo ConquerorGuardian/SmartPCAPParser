@@ -17,12 +17,14 @@ import customtkinter as ctk
 from gui import theme as theme_module
 from gui.chart import TrafficChart
 from gui.theme import (
+    ALL_QUICK_FILTERS,
     APP_SUBTITLE,
     APP_TITLE,
     COLUMN_ANCHORS,
     COLUMN_WIDTHS,
     EXAMPLE_COMMANDS,
     EXAMPLES_VISIBLE,
+    EXTRA_FILTERS,
     QUICK_FILTERS,
     SIDEBAR_WIDTH,
     VERDICT_FINDINGS,
@@ -113,6 +115,23 @@ class LayoutMixin:
             self.theme_switch.select()
         else:
             self.theme_switch.deselect()
+
+        # Простой режим: только файл, команда и шесть кнопок.
+        self.simple_switch = ctk.CTkSwitch(
+            footer,
+            text="Простой режим",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=theme_module.THEME["muted"],
+            progress_color=theme_module.THEME["accent"],
+            button_color=theme_module.THEME["text"],
+            button_hover_color=theme_module.THEME["accent_hover"],
+            command=self._toggle_simple_mode,
+        )
+        self.simple_switch.grid(row=1, column=0, sticky="w", pady=(6, 0))
+        if getattr(self, "simple_mode", True):
+            self.simple_switch.select()
+        else:
+            self.simple_switch.deselect()
 
     def _card(self, parent) -> ctk.CTkFrame:
         """Карточка с рамкой — общий вид блоков боковой панели."""
@@ -247,14 +266,16 @@ class LayoutMixin:
         card.grid(row=row, column=0, sticky="ew", padx=18, pady=(0, 10))
         self._card_title(card, "БЫСТРЫЕ ФИЛЬТРЫ")
 
-        grid = ctk.CTkFrame(card, fg_color="transparent")
-        grid.pack(fill="x", padx=10, pady=(4, 12))
+        # Шесть ходовых протоколов видны всегда: остальные либо в меню
+        # «Ещё…» (простой режим), либо на панели (опытный).
+        primary = ctk.CTkFrame(card, fg_color="transparent")
+        primary.pack(fill="x", padx=10, pady=(4, 0))
         for column in range(3):
-            grid.grid_columnconfigure(column, weight=1)
+            primary.grid_columnconfigure(column, weight=1)
 
         for index, (label, command) in enumerate(QUICK_FILTERS):
             button = ctk.CTkButton(
-                grid,
+                primary,
                 text=label,
                 height=26,
                 width=70,
@@ -264,14 +285,81 @@ class LayoutMixin:
                 text_color=theme_module.THEME["text"],
                 command=lambda cmd=command: self._run_quick_filter(cmd),
             )
-            button.grid(
-                row=index // 3, column=index % 3, padx=3, pady=3, sticky="ew"
+            button.grid(row=index // 3, column=index % 3, padx=3, pady=3, sticky="ew")
+
+        self.more_button = ctk.CTkButton(
+            card,
+            text="Ещё…",
+            height=24,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            fg_color="transparent",
+            hover_color=theme_module.THEME["button_hover"],
+            text_color=theme_module.THEME["accent"],
+            command=self._show_more_filters,
+        )
+        self.more_button.pack(fill="x", padx=13, pady=(0, 10))
+
+        self.extra_frame = ctk.CTkFrame(card, fg_color="transparent")
+        self.extra_frame.pack(fill="x", padx=10, pady=(0, 12))
+        for column in range(3):
+            self.extra_frame.grid_columnconfigure(column, weight=1)
+
+        for index, (label, command) in enumerate(ALL_QUICK_FILTERS[len(QUICK_FILTERS):]):
+            button = ctk.CTkButton(
+                self.extra_frame,
+                text=label,
+                height=26,
+                width=70,
+                font=ctk.CTkFont(family="Segoe UI", size=11),
+                fg_color=theme_module.THEME["button"],
+                hover_color=theme_module.THEME["button_hover"],
+                text_color=theme_module.THEME["text"],
+                command=lambda cmd=command: self._run_quick_filter(cmd),
             )
+            button.grid(row=index // 3, column=index % 3, padx=3, pady=3, sticky="ew")
+
+    def _build_more_menu(self) -> tk.Menu:
+        """Меню остальных протоколов; собирается отдельно, чтобы проверять."""
+        menu = tk.Menu(self, tearoff=0)
+        for label, command in EXTRA_FILTERS:
+            menu.add_command(
+                label=label, command=lambda cmd=command: self._run_quick_filter(cmd)
+            )
+        return menu
+
+    def _show_more_filters(self) -> None:
+        """Список остальных протоколов: один клик вместо ряда кнопок."""
+        menu = self._build_more_menu()
+        x = self.more_button.winfo_rootx()
+        y = self.more_button.winfo_rooty() + self.more_button.winfo_height()
+        try:
+            menu.tk_popup(x, y, 0)
+        finally:
+            menu.grab_release()
+
+    def _apply_simple_mode(self) -> None:
+        """Простой режим: минимум кнопок. Опытный: всё на виду."""
+        simple = bool(getattr(self, "simple_mode", True))
+        if simple:
+            self.more_button.pack(fill="x", padx=13, pady=(0, 10))
+            self.extra_frame.pack_forget()
+            self.examples_card.grid_remove()
+        else:
+            self.more_button.pack_forget()
+            self.extra_frame.pack(fill="x", padx=10, pady=(0, 12))
+            self.examples_card.grid()
+
+        self.verdict_button.configure(text="Проверить файл" if simple else "Вердикт")
+        if simple and self.verdict_panel.winfo_manager():
+            self.verdict_panel.grid_remove()
+        elif not simple and getattr(self, "verdict", None) is not None:
+            self.verdict_panel.grid()
 
     def _build_examples_card(self, parent, row: int) -> None:
         """Готовые команды: клик подставляет текст, менять нужно только адрес."""
         card = self._card(parent)
         card.grid(row=row, column=0, sticky="ew", padx=18, pady=(0, 10))
+        self.examples_card = card
 
         head = ctk.CTkFrame(card, fg_color="transparent")
         head.pack(fill="x", padx=14, pady=(12, 2))
@@ -446,6 +534,13 @@ class LayoutMixin:
         self.view_switch.set("Пакеты")
         self.view_switch.grid(row=0, column=0, sticky="w")
 
+        # Вердикт по файлу: в простом режиме это «Проверить файл»,
+        # в опытном панель показывается сама, а кнопка открывает подробности.
+        self.verdict_button = self._secondary_button(
+            bar, "Проверить файл", self._show_verdict_window, width=148
+        )
+        self.verdict_button.grid(row=0, column=2, sticky="e")
+
     # -- вердикт по файлу ------------------------------------------------
     def _build_verdict(self, parent, row: int) -> None:
         panel = ctk.CTkFrame(
@@ -512,7 +607,11 @@ class LayoutMixin:
     def _render_verdict(self, verdict) -> None:
         """Показывает короткий вывод словами и кнопки «показать»."""
         self.verdict = verdict
-        self.verdict_panel.grid()
+        if getattr(self, "simple_mode", True):
+            # В простом режиме панель не занимает место: вердикт по кнопке.
+            self.verdict_panel.grid_remove()
+        else:
+            self.verdict_panel.grid()
 
         colors = {
             "critical": theme_module.THEME["danger"],

@@ -103,14 +103,13 @@ def run_flow() -> None:
         ]
         assert frames == sorted(frames, reverse=True), frames
 
-        # Быстрые фильтры: частые протоколы, все команды рабочие.
+        # Быстрые фильтры: шесть ходовых протоколов, все команды рабочие.
         from gui import app as gui_app
+        from gui.theme import ALL_QUICK_FILTERS
 
         labels = [label for label, _ in gui_app.QUICK_FILTERS]
-        assert labels[:10] == [
-            "TCP", "UDP", "ICMP", "DNS", "DHCP", "ARP", "HTTP", "TLS", "QUIC", "SSH"
-        ], labels
-        for label, command in gui_app.QUICK_FILTERS:
+        assert labels == ["HTTP", "TLS", "DNS", "TCP", "UDP", "ICMP"], labels
+        for label, command in ALL_QUICK_FILTERS:
             query = app.engine.parse(command)
             filter_string = gui_app.generate_filter(query)
             assert filter_string, f"{label}: команда «{command}» ничего не даёт"
@@ -476,6 +475,9 @@ def run_verdict_flow() -> None:
 
     app = SmartPcapApp()
     app.withdraw()
+    # В опытном режиме панель вердикта видна сама, без кнопки.
+    app.simple_mode = False
+    app._apply_simple_mode()
     try:
         # Кнопка «Открыть пример дампа» поднимает встроенный файл.
         app._load_sample()
@@ -523,6 +525,63 @@ def run_verdict_flow() -> None:
 
         print("PASS: test_gui_verdict")
     finally:
+        shutdown(app)
+
+
+def run_simple_mode_flow() -> None:
+    """Простой режим: шесть кнопок, примеры и вердикт не занимают место."""
+    from gui.app import SmartPcapApp
+
+    app = SmartPcapApp()
+    app.withdraw()
+    settings_before = dict(app.settings)
+    try:
+        # Переключатель включает простой режим и сохраняет выбор.
+        app.simple_switch.select()
+        app._toggle_simple_mode()
+        app.update()
+
+        assert app.simple_mode is True, app.simple_mode
+        assert app.examples_card.winfo_manager() == "", "примеры видны в простом режиме"
+        assert app.extra_frame.winfo_manager() == "", "лишние фильтры видны"
+        assert app.more_button.winfo_ismapped(), "нет кнопки «Ещё…»"
+        assert app.simple_switch.get(), "переключатель не включён"
+        assert app.verdict_button.cget("text") == "Проверить файл"
+
+        # Все 22 команды остаются рабочими, просто часть в меню.
+        from gui.theme import ALL_QUICK_FILTERS, EXTRA_FILTERS
+
+        assert len(ALL_QUICK_FILTERS) == 22, len(ALL_QUICK_FILTERS)
+        assert len(EXTRA_FILTERS) == 16, len(EXTRA_FILTERS)
+
+        # Меню «Ещё…» содержит ровно те команды, которых нет на панели.
+        more_menu = app._build_more_menu()
+        try:
+            assert more_menu.index("end") == 15, more_menu.index("end")
+            assert more_menu.entrycget(0, "label") == EXTRA_FILTERS[0][0]
+        finally:
+            more_menu.destroy()
+
+        app._load_sample()
+        assert pump(app, lambda: bool(app.packets)), "пример не загрузился"
+        assert app.verdict is not None, "вердикт не посчитан"
+        assert app.verdict_panel.winfo_manager() != "grid", "панель вердикта мешает"
+
+        # Опытный режим возвращает панели на место.
+        app.simple_switch.deselect()
+        app._toggle_simple_mode()
+        app.update()
+        assert app.examples_card.winfo_manager() == "grid", "примеры не вернулись"
+        assert app.extra_frame.winfo_manager() == "pack", "лишние фильтры не вернулись"
+        assert app.verdict_panel.winfo_manager() == "grid", "панель вердикта не вернулась"
+        assert app.verdict_button.cget("text") == "Вердикт"
+
+        print("PASS: test_gui_simple_mode")
+    finally:
+        # Тест не должен менять настоящие настройки пользователя.
+        from parser.settings import save_settings
+
+        save_settings(settings_before)
         shutdown(app)
 
 
@@ -1026,6 +1085,7 @@ if __name__ == "__main__":
 
     flows = [
         run_flow, run_stream_flow, run_stats_flow, run_theme_flow, run_verdict_flow,
+        run_simple_mode_flow,
         run_search_flow, run_export_flow, run_layout_flow, run_big_file_flow,
         run_lazy_stream_flow, run_udp_stream_flow, run_pagination_flow,
         run_recent_flow, run_cancel_load_flow, run_initial_file_flow,

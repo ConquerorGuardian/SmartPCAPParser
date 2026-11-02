@@ -25,6 +25,7 @@ DEFAULTS: dict[str, Any] = {
     "columns": {},
     "stats_scope": "Все пакеты",
     "recent": [],
+    "simple_mode": True,
 }
 
 HISTORY_LIMIT = 40
@@ -76,6 +77,10 @@ def _clean_scope(value: Any) -> str:
     return value if value in ("Все пакеты", "Найденные") else DEFAULTS["stats_scope"]
 
 
+def _clean_bool(value: Any) -> bool:
+    return bool(value) if isinstance(value, bool) else DEFAULTS["simple_mode"]
+
+
 def _clean_recent(value: Any) -> list[str]:
     """Недавние файлы: только строки с путём, без дубликатов."""
     if not isinstance(value, list):
@@ -105,6 +110,7 @@ def normalize(data: Any) -> dict[str, Any]:
         "columns": _clean_columns(data.get("columns")),
         "stats_scope": _clean_scope(data.get("stats_scope")),
         "recent": _clean_recent(data.get("recent")),
+        "simple_mode": _clean_bool(data.get("simple_mode")),
     }
 
 
