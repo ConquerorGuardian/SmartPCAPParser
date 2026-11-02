@@ -256,12 +256,19 @@ pip install -r requirements-dev.txt
 python tools/make_icon.py               # перерисовать иконку, нужен Pillow
 python tools/build_exe.py               # один файл
 python tools/build_exe.py --onedir      # папка плюс zip
-python tools/build_exe.py --both        # оба варианта, так делает CI
+python tools/build_exe.py --portable    # один файл, распаковка рядом с собой
+python tools/build_exe.py --both        # все три варианта, так делает CI
 python tools/check_exe.py dist/SmartPCAPParser.exe
 ```
 
+Обычный один файл распаковывается во временную папку Windows. Если `%TEMP%`
+недоступен, Windows покажет «Could not create temporary directory». Тогда
+берите `SmartPCAPParser-portable.exe`: он распаковывается в папку `tmp` рядом
+с собой и не зависит от переменных окружения. Вариант `--onedir` не
+распаковывается вообще.
+
 Рядом с файлами появляется `dist/SHA256SUMS.txt`. По тегу `v*` сборку
-запускает GitHub Actions: тесты, оба варианта, самопроверка, публикация в
+запускает GitHub Actions: тесты, все варианты, самопроверка, публикация в
 Releases.
 
 ## Скорость

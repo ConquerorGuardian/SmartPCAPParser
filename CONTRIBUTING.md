@@ -18,7 +18,7 @@ python main.py
 ```bash
 python -m tests.run_all      # 178 проверок
 ruff check .                 # линтер, строки до 100 символов
-python tools/build_exe.py --both
+python tools/build_exe.py --both   # exe, папка с zip и portable-вариант
 ```
 
 Тест это функция `test_*` с `assert`. Новый тест нужно добавить в список в

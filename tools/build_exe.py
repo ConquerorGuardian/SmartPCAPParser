@@ -87,9 +87,14 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def write_checksums(artifacts: list[Path]) -> Path:
+def write_checksums() -> Path:
+    """Суммы по всем артефактам в dist/: exe и zip, что там реально лежат."""
     target = DIST / "SHA256SUMS.txt"
-    lines = ["{}  {}".format(sha256(item), item.name) for item in artifacts]
+    items = sorted(
+        path for path in DIST.iterdir()
+        if path.is_file() and path.suffix.lower() in {".exe", ".zip"}
+    )
+    lines = ["{}  {}".format(sha256(item), item.name) for item in items]
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return target
 
@@ -106,13 +111,17 @@ def make_zip(folder: Path) -> Path:
     return archive
 
 
-def run_pyinstaller(onedir: bool, splash: bool) -> Path:
+def run_pyinstaller(onedir: bool, splash: bool, portable: bool = False) -> Path:
     """Собирает вариант в отдельную папку и возвращает готовый артефакт.
 
     У onefile и onedir разные рабочие и выходные папки: когда обе сборки идут
     в один dist/, второй проход портит архив onefile, и exe падает с кодом -1.
+
+    portable — onefile, который распаковывается в папку tmp рядом с exe,
+    а не во временную папку Windows. Нужен там, где %TEMP% недоступен.
     """
-    mode = "onedir" if onedir else "onefile"
+    mode = "onedir" if onedir else ("portable" if portable else "onefile")
+    name = "{}-portable".format(APP_NAME) if portable else APP_NAME
     work = BUILD / mode
     out = work / "dist"
     env = dict(os.environ)
@@ -122,7 +131,7 @@ def run_pyinstaller(onedir: bool, splash: bool) -> Path:
     command = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean", "--windowed",
-        "--name", APP_NAME,
+        "--name", name,
         "--icon", str(ROOT / "assets" / "app.ico"),
         "--version-file", str(version_file),
         "--collect-all", "customtkinter",
@@ -139,14 +148,17 @@ def run_pyinstaller(onedir: bool, splash: bool) -> Path:
     ]
     if not onedir:
         command.append("--onefile")
+    if portable:
+        # Относительный путь: распаковка идёт в tmp рядом с exe, откуда запуск.
+        command += ["--runtime-tmpdir", "tmp"]
     if splash and (ROOT / "assets" / "logo.png").exists():
         command += ["--splash", str(ROOT / "assets" / "logo.png")]
     command.append(str(ROOT / "main.py"))
 
-    print("Сборка:", "onedir" if onedir else "onefile", "...")
+    print("Сборка:", mode, "...")
     subprocess.run(command, cwd=ROOT, env=env, check=True)
 
-    produced = out / (APP_NAME if onedir else "{}.exe".format(APP_NAME))
+    produced = out / (APP_NAME if onedir else "{}.exe".format(name))
     if not produced.exists():
         raise FileNotFoundError(str(produced))
     return produced
@@ -158,6 +170,9 @@ def main() -> int:
                         help="собрать папку вместо одного файла")
     parser.add_argument("--both", action="store_true",
                         help="собрать и один файл, и папку (для релиза)")
+    parser.add_argument("--portable", action="store_true",
+                        help="onefile, который распаковывается в tmp рядом с exe "
+                             "(выручает, когда %TEMP% недоступен)")
     parser.add_argument("--splash", action="store_true",
                         help="показывать заставку, пока распаковывается onefile")
     args = parser.parse_args()
@@ -181,16 +196,18 @@ def main() -> int:
     if BUILD.exists():
         shutil.rmtree(BUILD, ignore_errors=True)
 
-    modes: list[bool] = []
+    modes: list[tuple[bool, bool]] = []
     if args.both:
-        modes = [False, True]      # сначала один файл, потом папка
+        # Для релиза: обычный один файл, папка и portable-вариант.
+        modes = [(False, False), (True, False), (False, True)]
+    elif args.portable:
+        modes = [(False, True)]
     else:
-        modes = [args.onedir]
+        modes = [(args.onedir, False)]
 
-    artifacts: list[Path] = []
-    for onedir in modes:
+    for onedir, portable in modes:
         try:
-            produced = run_pyinstaller(onedir, args.splash)
+            produced = run_pyinstaller(onedir, args.splash, portable)
         except subprocess.CalledProcessError as exc:
             print("Сборка не удалась, код", exc.returncode)
             return exc.returncode
@@ -203,28 +220,28 @@ def main() -> int:
             if folder.exists():
                 shutil.rmtree(folder, ignore_errors=True)
             shutil.copytree(produced, folder)
-            archive = make_zip(folder)
-            artifacts.append(archive)
-            print("Готово: {} ({:.1f} МБ)".format(
-                archive, archive.stat().st_size / (1024 * 1024)))
+            artifact = make_zip(folder)
         else:
-            exe = DIST / "{}.exe".format(APP_NAME)
-            exe.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(produced, exe)
-            artifacts.append(exe)
-            print("Готово: {} ({:.1f} МБ)".format(
-                exe, exe.stat().st_size / (1024 * 1024)))
+            name = "{}-portable.exe".format(APP_NAME) if portable else "{}.exe".format(APP_NAME)
+            artifact = DIST / name
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(produced, artifact)
+        print("Готово: {} ({:.1f} МБ)".format(
+            artifact, artifact.stat().st_size / (1024 * 1024)))
 
-    checksums = write_checksums(artifacts)
+    checksums = write_checksums()
     print("Контрольные суммы:", checksums)
 
     # check_exe.py умеет проверять только exe, поэтому в подсказке — именно они.
-    check_targets = [DIST / "{}.exe".format(APP_NAME)]
-    folder_exe = DIST / APP_NAME / "{}.exe".format(APP_NAME)
-    if folder_exe.exists():
-        check_targets.append(folder_exe)
+    check_targets = [
+        item for item in (
+            DIST / "{}.exe".format(APP_NAME),
+            DIST / "{}-portable.exe".format(APP_NAME),
+            DIST / APP_NAME / "{}.exe".format(APP_NAME),
+        ) if item.exists()
+    ]
     print("Проверка: python tools/check_exe.py " + " ".join(
-        item.as_posix() for item in check_targets if item.exists()))
+        item.as_posix() for item in check_targets))
     return 0
 
 
