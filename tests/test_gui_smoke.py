@@ -352,8 +352,28 @@ def run_stats_flow() -> None:
             app.proto_tree.item(total_item, "values")
         )
 
+        # Переход из статистики в пакеты: сайт и разговор.
+        app._show_view("stats")
+        app.update()
+        app._stats_open_row("example.com", "host")
+        app.update()
+        assert app._current_view == "packets", app._current_view
+        assert "example.com" in app.current_filter, app.current_filter
+        assert len(app._rows) == 3, len(app._rows)
+
+        app._show_view("stats")
+        app.update()
+        conversation_row = app.conv_tree.get_children()[0]
+        conversation_text = app.conv_tree.item(conversation_row, "text")
+        app._stats_open_row(conversation_text, "conversation")
+        app.update()
+        assert app.current_filter.startswith("(ip.addr=="), app.current_filter
+        assert app._rows, "после разговора таблица пуста"
+
         # Детали пакета.
         app._show_view("packets")
+        app._reset_filter()
+        app.update()
         for item in app.tree.get_children():
             if str(app.tree.item(item, "values")[0]) == "6":
                 app.tree.selection_set(item)

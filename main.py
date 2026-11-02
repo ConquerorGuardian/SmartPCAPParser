@@ -15,11 +15,27 @@ import argparse
 import os
 import sys
 import tempfile
+import time
+import traceback
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+# У собранного exe без консоли падение иначе не увидеть. Файл живёт в %TEMP%
+# и появляется только в windowed-режиме, при запуске из исходников его нет.
+CRASH_LOG = Path(tempfile.gettempdir()) / "smartpcap_crash.txt"
+if sys.stdout is None:
+    try:
+        with CRASH_LOG.open("a", encoding="utf-8") as _start_log:
+            _start_log.write(
+                "start {} {}\n".format(
+                    time.strftime("%Y-%m-%d %H:%M:%S"), sys.argv[1:]
+                )
+            )
+    except OSError:
+        pass
 
 from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
@@ -266,6 +282,23 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _install_crash_log() -> None:
+    """Пишет трейсбек в %TEMP%: у exe без консоли иначе ошибку не увидеть."""
+    global CRASH_LOG
+    CRASH_LOG = Path(tempfile.gettempdir()) / "smartpcap_crash.txt"
+
+    def hook(exc_type, exc, tb):
+        try:
+            stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            text = "".join(traceback.format_exception(exc_type, exc, tb))
+            with CRASH_LOG.open("a", encoding="utf-8") as file:
+                file.write("\n=== {} ===\n{}\n".format(stamp, text))
+        except Exception:                    # noqa: BLE001 — лог не должен мешать
+            pass
+
+    sys.excepthook = hook
+
+
 def main() -> int:
     # У exe без консоли (--windowed) sys.stdout/sys.stderr равны None,
     # и любой print падал бы с AttributeError. Подменяем на «в никуда»:
@@ -321,4 +354,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    _install_crash_log()
     sys.exit(main())

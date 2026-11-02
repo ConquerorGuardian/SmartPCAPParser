@@ -19,6 +19,9 @@ tests/_*.pcapng
 # Сборка приложения
 build/
 dist/
+# Отладочная сборка с консолью (tools/build_exe.py --debug)
+build-debug/
+dist-debug/
 
 # Резервные копии проекта
 backups/

@@ -3,7 +3,13 @@
 
 Данные берутся из parser.stats, а деревья создаёт LayoutMixin._build_stats.
 THEME читается через theme_module: график перекрашивается под текущую тему.
+
+Правая кнопка по строке сайта, разговора или узла применяет к таблице готовый
+фильтр: из «Сайтов и хостов» удобно вернуться к конкретным пакетам.
 """
+
+import ipaddress
+import tkinter as tk
 
 from gui import theme as theme_module
 from parser.matcher import FilterError, compile_filter
@@ -17,6 +23,54 @@ from parser.stats import (
     summary,
     timeline,
 )
+
+SITE_FILTER = (
+    '(http.host contains "{0}" or tls.handshake.extensions_server_name '
+    'contains "{0}" or dns.qry.name contains "{0}")'
+)
+
+
+def site_filter(name: str) -> str:
+    """Фильтр по имени сайта: HTTP Host, TLS SNI или DNS-запрос."""
+    name = name.strip()
+    if not name:
+        return ""
+    return SITE_FILTER.format(name)
+
+
+def node_filter(address: str) -> str:
+    """Фильтр по узлу: IP-адрес или MAC, пустая строка для остального."""
+    address = address.strip()
+    if not address or address == "?":
+        return ""
+    try:
+        ipaddress.ip_address(address)
+    except ValueError:
+        if address.count(":") == 5:
+            return "eth.addr=={}".format(address.lower())
+        return ""
+    return "ip.addr=={}".format(address)
+
+
+def conversation_filter(label: str) -> str:
+    """Фильтр по паре узлов из строки разговора."""
+    parts = [part.strip() for part in label.split("\u2194")]
+    if len(parts) != 2:
+        return ""
+    first, second = (_address(part) for part in parts)
+    if not first or not second:
+        return ""
+    return "(ip.addr=={} and ip.addr=={})".format(first, second)
+
+
+def _address(label: str) -> str:
+    """Убирает порт: «10.0.0.1:443» становится «10.0.0.1», IPv6 не трогаем."""
+    label = label.strip()
+    if label.count(":") == 1:
+        head, tail = label.rsplit(":", 1)
+        if tail.isdigit():
+            return head
+    return label
 
 
 class StatsMixin:
@@ -106,3 +160,70 @@ class StatsMixin:
                     format_bytes(node.total_bytes),
                 ),
             )
+
+    # ------------------------------------------------------------------
+    # Правая кнопка по строке: вернуться к пакетам с готовым фильтром
+    # ------------------------------------------------------------------
+    def _init_stats_menus(self) -> None:
+        """Двойной клик и правая кнопка по сайту, разговору или узлу."""
+        for tree, kind in (
+            (self.host_tree, "host"),
+            (self.conv_tree, "conversation"),
+            (self.endpoint_tree, "endpoint"),
+        ):
+            tree.bind(
+                "<Button-3>",
+                lambda event, tree=tree, kind=kind: self._stats_menu(event, tree, kind),
+            )
+            tree.bind(
+                "<Double-1>",
+                lambda event, tree=tree, kind=kind: self._stats_open(event, tree, kind),
+            )
+
+    def _stats_menu(self, event, tree, kind: str) -> None:
+        row = tree.identify_row(event.y)
+        if not row:
+            return
+        tree.selection_set(row)
+        tree.focus(row)
+        text = tree.item(row, "text")
+
+        labels = {
+            "host": "Показать пакеты этого сайта",
+            "conversation": "Показать пакеты этого разговора",
+            "endpoint": "Показать пакеты этого узла",
+        }
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(
+            label=labels[kind], command=lambda: self._stats_open_row(text, kind)
+        )
+        menu.add_command(
+            label="Скопировать", command=lambda: self._copy_stats_text(text)
+        )
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def _stats_open(self, event, tree, kind: str) -> None:
+        row = tree.identify_row(event.y)
+        if row:
+            self._stats_open_row(tree.item(row, "text"), kind)
+
+    def _stats_open_row(self, text: str, kind: str) -> None:
+        """Строит фильтр по строке статистики и показывает подходящие пакеты."""
+        if kind == "host":
+            filter_string = site_filter(text)
+        elif kind == "conversation":
+            filter_string = conversation_filter(text)
+        else:
+            filter_string = node_filter(text)
+
+        if not filter_string:
+            self._set_status(
+                "Из этой строки фильтр не собрать. Выберите сайт, разговор или IP-адрес."
+            )
+            return
+        self._show_packets_by_filter(filter_string)
+
+    def _copy_stats_text(self, text: str) -> None:
+        self.clipboard_clear()
+        self.clipboard_append(text)
+        self._set_status("Скопировано: {}".format(text))

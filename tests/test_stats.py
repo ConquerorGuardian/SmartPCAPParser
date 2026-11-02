@@ -235,6 +235,32 @@ def test_hosts():
     print("PASS: test_hosts")
 
 
+def test_stats_page_filters():
+    """Строка статистики превращается в рабочий фильтр, как и обещано в меню."""
+    from gui.stats_view import conversation_filter, node_filter, site_filter
+    from parser.matcher import compile_filter
+
+    site = site_filter("example.com")
+    assert 'http.host contains "example.com"' in site, site
+    assert "tls.handshake.extensions_server_name" in site, site
+    assert 'dns.qry.name contains "example.com"' in site, site
+
+    assert node_filter("10.0.0.1") == "ip.addr==10.0.0.1", node_filter("10.0.0.1")
+    assert node_filter("aa:bb:cc:dd:ee:ff") == "eth.addr==aa:bb:cc:dd:ee:ff"
+    assert node_filter("?") == ""
+    assert node_filter("не адрес") == ""
+
+    pair = conversation_filter("10.0.0.1:5000  ↔  8.8.8.8:443")
+    assert pair == "(ip.addr==10.0.0.1 and ip.addr==8.8.8.8)", pair
+    assert conversation_filter("8.8.8.8  ↔  1.1.1.1") == (
+        "(ip.addr==8.8.8.8 and ip.addr==1.1.1.1)"
+    )
+    assert conversation_filter("мусор") == ""
+
+    for text in (site, node_filter("10.0.0.1"), pair):
+        compile_filter(text)
+
+
 def main() -> int:
     tests = [
         test_hierarchy_counts,
@@ -248,6 +274,7 @@ def main() -> int:
         test_format_helpers,
         test_real_file,
         test_hosts,
+        test_stats_page_filters,
     ]
 
     failed = 0

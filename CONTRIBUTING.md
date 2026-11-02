@@ -16,7 +16,7 @@ python main.py
 ## Проверить
 
 ```bash
-python -m tests.run_all      # 177 проверок
+python -m tests.run_all      # 178 проверок
 ruff check .                 # линтер, строки до 100 символов
 python tools/build_exe.py --both
 ```

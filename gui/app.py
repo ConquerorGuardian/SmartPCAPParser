@@ -146,6 +146,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
         self._build_ui()
         self._apply_columns(self.settings.get("columns") or {})
+        self._init_stats_menus()
         self.stats_scope.set(self.settings.get("stats_scope", "Все пакеты"))
         self._refresh_recent_menu()
         self._set_status("Откройте файл .pcap или .pcapng, затем опишите трафик словами.")
@@ -513,6 +514,21 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self.command_entry.delete(0, "end")
         self.command_entry.insert(0, command)
         self._apply_command()
+
+    def _show_packets_by_filter(self, filter_string: str) -> None:
+        """Применяет готовый фильтр (из статистики) и открывает пакеты."""
+        if self._busy:
+            return
+        if not self.packets:
+            self._set_status("Сначала откройте файл .pcap или .pcapng.")
+            return
+
+        self.command_entry.delete(0, "end")
+        self.command_entry.insert(0, filter_string)
+        self._apply_command()
+
+        self.view_switch.set("Пакеты")
+        self._show_view("packets")
 
     def _push_history(self, command: str) -> None:
         if not command:

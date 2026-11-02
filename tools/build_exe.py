@@ -106,7 +106,15 @@ def make_zip(folder: Path) -> Path:
     return archive
 
 
-def run_pyinstaller(onedir: bool, splash: bool) -> None:
+def run_pyinstaller(onedir: bool, splash: bool) -> Path:
+    """Собирает вариант в отдельную папку и возвращает готовый артефакт.
+
+    У onefile и onedir разные рабочие и выходные папки: когда обе сборки идут
+    в один dist/, второй проход портит архив onefile, и exe падает с кодом -1.
+    """
+    mode = "onedir" if onedir else "onefile"
+    work = BUILD / mode
+    out = work / "dist"
     env = dict(os.environ)
     env["SMARTPCAP_ROOT"] = str(ROOT)
     version_file = write_version_file()
@@ -126,8 +134,8 @@ def run_pyinstaller(onedir: bool, splash: bool) -> None:
         "--add-data", "{};tests".format(ROOT / "tests" / "sample_traffic.pcap"),
         "--add-data", "{};tests".format(ROOT / "tests" / "sample_traffic.pcapng"),
         "--add-data", "{};assets".format(ROOT / "assets" / "app.ico"),
-        "--distpath", str(DIST),
-        "--workpath", str(BUILD),
+        "--distpath", str(out),
+        "--workpath", str(work / "work"),
     ]
     if not onedir:
         command.append("--onefile")
@@ -137,6 +145,11 @@ def run_pyinstaller(onedir: bool, splash: bool) -> None:
 
     print("Сборка:", "onedir" if onedir else "onefile", "...")
     subprocess.run(command, cwd=ROOT, env=env, check=True)
+
+    produced = out / (APP_NAME if onedir else "{}.exe".format(APP_NAME))
+    if not produced.exists():
+        raise FileNotFoundError(str(produced))
+    return produced
 
 
 def main() -> int:
@@ -177,25 +190,27 @@ def main() -> int:
     artifacts: list[Path] = []
     for onedir in modes:
         try:
-            run_pyinstaller(onedir, args.splash)
+            produced = run_pyinstaller(onedir, args.splash)
         except subprocess.CalledProcessError as exc:
             print("Сборка не удалась, код", exc.returncode)
             return exc.returncode
+        except FileNotFoundError as exc:
+            print("Артефакт не появился:", exc)
+            return 1
 
         if onedir:
             folder = DIST / APP_NAME
-            if not folder.exists():
-                print("Папка сборки не появилась:", folder)
-                return 1
+            if folder.exists():
+                shutil.rmtree(folder, ignore_errors=True)
+            shutil.copytree(produced, folder)
             archive = make_zip(folder)
             artifacts.append(archive)
             print("Готово: {} ({:.1f} МБ)".format(
                 archive, archive.stat().st_size / (1024 * 1024)))
         else:
             exe = DIST / "{}.exe".format(APP_NAME)
-            if not exe.exists():
-                print("exe не появился:", exe)
-                return 1
+            exe.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(produced, exe)
             artifacts.append(exe)
             print("Готово: {} ({:.1f} МБ)".format(
                 exe, exe.stat().st_size / (1024 * 1024)))

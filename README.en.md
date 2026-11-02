@@ -3,12 +3,6 @@
 Turn a Russian sentence into a Wireshark display filter and see the matching
 packets right away. No tshark, no Wireshark, no AI.
 
-[Русская версия](README.md)
-
-![Screenshot](docs/screenshot.png)
-
-## What it is
-
 Wireshark wants filters like this:
 
 ```
@@ -55,7 +49,7 @@ pcap viewer with a human front end.
   hosts, on the whole file or on the current filter.
 - Plain-language verdict with findings, each one can be applied as a filter.
 - Dark and light theme, settings and recent files survive restarts.
-- 177 checks in 12 test modules, 54 real captures in the corpus run.
+- 178 checks in 12 test modules, 54 real captures in the corpus run.
 
 ## Install and run
 
@@ -186,12 +180,4 @@ Every module starts with a short description of what it does.
 - Exotic link types (ATM, MTP2, Frame Relay) are reported as unsupported.
 - No TLS decryption.
 
-## Documentation
-
-[Examples](docs/EXAMPLES.md) · [FAQ](docs/FAQ.md) ·
-[Contributing](CONTRIBUTING.md) ·
-[Security](SECURITY.md) · [Changelog](CHANGELOG.md)
-
-## License
-
-MIT, see [LICENSE](LICENSE).
+ 
