@@ -333,7 +333,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self._set_busy(True)
         self._set_status("Читаю файл: {}…".format(path.name))
         threading.Thread(target=self._load_worker, args=(path,), daemon=True).start()
-        self.after(100, self._poll_load)
+        self._poll_job = self.after(100, self._poll_load)
 
     def _load_sample(self) -> None:
         """Открывает встроенный пример дампа — посмотреть, как всё работает."""
@@ -379,11 +379,13 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             self.cancel_button.configure(state="disabled")
 
     def _poll_load(self) -> None:
+        if not self.winfo_exists():
+            return
         try:
             path, packets, error = self._load_queue.get_nowait()
         except queue.Empty:
             self._update_load_progress()
-            self.after(100, self._poll_load)
+            self._poll_job = self.after(100, self._poll_load)
             return
 
         self._set_busy(False)
@@ -431,6 +433,10 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         if big:
             status += (" Файл большой — тела TCP подгружаются по требованию, "
                        "когда открываете поток.")
+        if self.packets and all(packet.protocol == "?" for packet in self.packets):
+            # Экзотический тип канала: честно говорим, что разбирать нечего.
+            status += (" Тип канала в этом файле не поддерживается: кадры видно, "
+                       "но поля не разобраны. Для разбора откройте файл в Wireshark.")
         self._set_status(status)
 
     def _update_load_progress(self) -> None:
@@ -655,6 +661,16 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
     def _on_close(self) -> None:
         """Сохраняет настройки и закрывает окно."""
+        # Снимаем свои отложенные задачи: иначе Tk ругается в stderr,
+        # если окно закрыли сразу после смены темы или во время чтения.
+        for name in ("_rebuild_job", "_poll_job"):
+            job = getattr(self, name, None)
+            if job is not None:
+                try:
+                    self.after_cancel(job)
+                except Exception:                       # noqa: BLE001
+                    pass
+                setattr(self, name, None)
         try:
             save_settings(self._current_settings())
         finally:
@@ -686,7 +702,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         ctk.set_appearance_mode("light" if name == "light" else "dark")
 
         # Полная перестройка: проще и надёжнее, чем красить каждый виджет.
-        self.after(10, self._rebuild_ui)
+        self._rebuild_job = self.after(10, self._rebuild_ui)
 
     def _capture_state(self) -> dict:
         return {
@@ -709,6 +725,9 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         }
 
     def _rebuild_ui(self) -> None:
+        # Тему могли переключить перед самым закрытием окна.
+        if not self.winfo_exists():
+            return
         state = self._capture_state()
 
         for child in self.winfo_children():

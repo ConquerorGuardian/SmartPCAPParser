@@ -23,9 +23,31 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# У собранного exe без консоли падение иначе не увидеть. Файл живёт в %TEMP%
-# и появляется только в windowed-режиме, при запуске из исходников его нет.
-CRASH_LOG = Path(tempfile.gettempdir()) / "smartpcap_crash.txt"
+# У собранного exe без консоли падение иначе не увидеть. Файл живёт в %TEMP%,
+# а если тот недоступен (бывает на чужой машине) — рядом с exe.
+def crash_log_path() -> Path:
+    """Куда писать трейсбек: первая папка, в которую реально можно писать."""
+    folders = []
+    for variable in ("TEMP", "TMP"):
+        value = os.environ.get(variable)
+        if value:
+            folders.append(Path(value))
+    if getattr(sys, "frozen", False):
+        folders.append(Path(sys.executable).resolve().parent)
+    folders.append(Path.cwd())
+    for folder in folders:
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            probe = folder / ".smartpcap_write_test"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink()
+            return folder / "smartpcap_crash.txt"
+        except OSError:
+            continue
+    return Path("smartpcap_crash.txt")
+
+
+CRASH_LOG = crash_log_path()
 if sys.stdout is None:
     try:
         with CRASH_LOG.open("a", encoding="utf-8") as _start_log:
@@ -283,9 +305,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _install_crash_log() -> None:
-    """Пишет трейсбек в %TEMP%: у exe без консоли иначе ошибку не увидеть."""
+    """Пишет трейсбек в %TEMP% или рядом с exe: без консоли иначе не увидеть."""
     global CRASH_LOG
-    CRASH_LOG = Path(tempfile.gettempdir()) / "smartpcap_crash.txt"
+    CRASH_LOG = crash_log_path()
 
     def hook(exc_type, exc, tb):
         try:

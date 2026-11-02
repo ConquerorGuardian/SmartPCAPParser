@@ -1048,12 +1048,24 @@ def run_missing_file_flow() -> None:
 
     app = SmartPcapApp()
     app.withdraw()
+    bad = Path(__file__).parent / "_linktype_99.pcap"
     try:
         app._open_initial_file(Path("нет-такого-файла.pcap"))
         app.update()
         assert app.packets == []
         assert "не найден" in app.status_label.cget("text").lower()
+
+        # Экзотический linktype: кадры видны, но разобрать их нечем.
+        import struct
+
+        header = struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 9999, 0)
+        bad.write_bytes(header + struct.pack("<IIII", 0, 0, 20, 20) + b"\x00" * 20)
+        app._load_path(bad)
+        assert pump(app, lambda: bool(app.packets)), "файл с linktype не прочитан"
+        status = app.status_label.cget("text")
+        assert "не поддерживается" in status, status
     finally:
+        bad.unlink(missing_ok=True)
         shutdown(app)
     print("PASS: run_missing_file_flow")
 
