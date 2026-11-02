@@ -98,6 +98,11 @@ class StatsMixin:
         self.chart.set_data(timeline(packets), metric, theme_module.THEME)
 
     def _refresh_stats(self) -> None:
+        # Считаем только когда вкладка видна: на файле в сотни тысяч пакетов
+        # пересчёт после каждой команды заметно тормозил бы таблицу.
+        if getattr(self, "_current_view", "packets") != "stats":
+            return
+
         packets = self._stats_scope_packets()
         self._refresh_chart()
 

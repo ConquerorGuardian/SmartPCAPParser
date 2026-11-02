@@ -7,7 +7,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Приложение живёт на Windows, поэтому тесты гоняются на обеих системах:
+    # на Ubuntu GUI-тесты пропускаются без дисплея, на Windows идут целиком.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -19,17 +25,26 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install Tk and Xvfb (Linux only)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk xvfb
+
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
         run: ruff check .
 
-      - name: Tests
+      - name: Tests (Windows)
+        if: runner.os == 'Windows'
+        run: python -m tests.run_all
+
+      - name: Tests (Linux, under Xvfb)
+        if: runner.os == 'Linux'
         run: xvfb-run -a python -m tests.run_all
 
       - name: Type check (advisory)
