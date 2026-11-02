@@ -679,8 +679,11 @@ class LayoutMixin:
             self.tree.column(
                 column,
                 width=COLUMN_WIDTHS.get(column, 120),
+                minwidth=40,
                 anchor=anchor,
-                stretch=(column == "Info"),
+                # Колонки не подгоняются под ширину окна: длинный Info не
+                # обрезается, а прокручивается по горизонтали.
+                stretch=False,
             )
 
         for protocol, (even, odd) in theme_module.PROTOCOL_TINTS.items():
@@ -689,11 +692,19 @@ class LayoutMixin:
         self.tree.tag_configure("other_even", background=theme_module.THEME["row_alt"])
         self.tree.tag_configure("other_odd", background=theme_module.THEME["row"])
 
-        self.tree.grid(row=0, column=0, sticky="nsew", padx=(10, 0), pady=10)
+        self.tree.grid(row=0, column=0, sticky="nsew", padx=(10, 0), pady=(10, 0))
 
         y_scroll = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
-        y_scroll.grid(row=0, column=1, sticky="ns", pady=10, padx=(0, 6))
+        y_scroll.grid(row=0, column=1, sticky="ns", pady=(10, 0), padx=(0, 6))
         self.tree.configure(yscrollcommand=y_scroll.set)
+
+        # Длинный Info не влезает по ширине: горизонтальная прокрутка и
+        # Shift+колесо, чтобы не тащить ползунок мышью.
+        x_scroll = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
+        x_scroll.grid(row=1, column=0, sticky="ew", padx=(10, 0), pady=(0, 4))
+        self.x_scroll = x_scroll
+        self.tree.configure(xscrollcommand=x_scroll.set)
+        self.tree.bind("<Shift-MouseWheel>", self._scroll_sideways)
 
         self.tree.bind("<Double-1>", self._show_packet_details)
         self.tree.bind("<Button-3>", self._show_context_menu)
@@ -704,7 +715,7 @@ class LayoutMixin:
         # Листание страниц: до VIEW_LIMIT строк оно не нужно и подпись
         # сообщает «Все строки», выше — страницы по PAGE_SIZE.
         pager = ctk.CTkFrame(container, fg_color="transparent")
-        pager.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 8))
+        pager.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 8))
         pager.grid_columnconfigure(2, weight=1)
 
         self.page_first_button = self._secondary_button(

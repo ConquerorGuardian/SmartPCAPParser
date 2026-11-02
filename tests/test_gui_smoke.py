@@ -546,6 +546,20 @@ def run_layout_flow() -> None:
         assert app.command_entry.winfo_ismapped(), "поле команды пропало"
         assert app.tree.winfo_ismapped(), "таблица не показана"
         assert app.tree.winfo_height() > 80, app.tree.winfo_height()
+
+        # Длинный Info: колонки шире окна, значит нужна горизонтальная прокрутка.
+        total_width = sum(
+            app.tree.column(column, "width") for column in app.tree["columns"]
+        )
+        assert total_width > app.tree.winfo_width(), (
+            total_width,
+            app.tree.winfo_width(),
+        )
+        assert app.tree.xview() != (0.0, 1.0), app.tree.xview()
+        assert app.x_scroll.winfo_ismapped(), "нет горизонтальной прокрутки"
+        app._scroll_sideways(type("Event", (), {"delta": -120})())
+        assert app.tree.xview()[0] > 0.0, app.tree.xview()
+        app.tree.xview_moveto(0.0)
         app.withdraw()
     finally:
         shutdown(app)

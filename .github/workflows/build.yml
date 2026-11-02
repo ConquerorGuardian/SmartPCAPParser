@@ -30,7 +30,7 @@ jobs:
       - name: Run tests
         run: python -m tests.run_all
 
-      - name: Build exe (single file + portable folder)
+      - name: Build exe (single file + folder)
         run: python tools/build_exe.py --both
 
       - name: Self-test the packaged app

@@ -349,7 +349,15 @@ def main() -> int:
     from gui.app import main as gui_main
 
     initial_file = args.open_path or args.path
-    gui_main(initial_file or None)
+    try:
+        gui_main(initial_file or None)
+    finally:
+        # Окно закрылось штатно: метка запуска из журнала больше не нужна.
+        # Если приложение упало, файл останется вместе с трейсбеком.
+        try:
+            CRASH_LOG.unlink()
+        except OSError:
+            pass
     return 0
 
 

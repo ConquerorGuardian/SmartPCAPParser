@@ -89,7 +89,7 @@ COLUMN_WIDTHS = {
     "Destination": 148,
     "Dst Port": 74,
     "Length": 64,
-    "Info": 320,
+    "Info": 760,
 }
 
 # Выравнивание: числа — вправо, текст — влево.

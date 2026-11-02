@@ -21,6 +21,10 @@ from parser.pcap_handler import COLUMNS, PcapResult
 class TableMixin:
     """Отрисовка строк, поиск, сортировка, экспорт и выделение кадра."""
 
+    def _scroll_sideways(self, event) -> None:
+        """Shift+колесо мыши: горизонтальная прокрутка длинного Info."""
+        self.tree.xview_scroll(-1 if event.delta > 0 else 1, "units")
+
     def _show_all(self) -> None:
         """Показать все совпадения: маленькие файлы — целиком, большие — страницами."""
         if not self.packets:

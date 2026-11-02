@@ -179,5 +179,3 @@ Every module starts with a short description of what it does.
   64 MB per stream. The table keeps 500 000 rows, use filters on bigger files.
 - Exotic link types (ATM, MTP2, Frame Relay) are reported as unsupported.
 - No TLS decryption.
-
- 

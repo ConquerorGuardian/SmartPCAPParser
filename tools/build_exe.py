@@ -114,7 +114,7 @@ def make_zip(folder: Path) -> Path:
     return archive
 
 
-def run_pyinstaller(onedir: bool, splash: bool) -> Path:
+def run_pyinstaller(onedir: bool) -> Path:
     """Собирает вариант в отдельную папку и возвращает готовый артефакт.
 
     У onefile и onedir разные рабочие и выходные папки: когда обе сборки идут
@@ -153,8 +153,6 @@ def run_pyinstaller(onedir: bool, splash: bool) -> Path:
         command.append("--onefile")
         # Относительный путь: распаковка идёт в tmp рядом с exe, откуда запуск.
         command += ["--runtime-tmpdir", "tmp"]
-    if splash and (ROOT / "assets" / "logo.png").exists():
-        command += ["--splash", str(ROOT / "assets" / "logo.png")]
     command.append(str(ROOT / "main.py"))
 
     print("Сборка:", mode, "...")
@@ -172,8 +170,6 @@ def main() -> int:
                         help="собрать папку вместо одного файла")
     parser.add_argument("--both", action="store_true",
                         help="собрать и один файл, и папку (для релиза)")
-    parser.add_argument("--splash", action="store_true",
-                        help="показывать заставку, пока распаковывается onefile")
     args = parser.parse_args()
 
     try:
@@ -203,7 +199,7 @@ def main() -> int:
 
     for onedir in modes:
         try:
-            produced = run_pyinstaller(onedir, args.splash)
+            produced = run_pyinstaller(onedir)
         except subprocess.CalledProcessError as exc:
             print("Сборка не удалась, код", exc.returncode)
             return exc.returncode

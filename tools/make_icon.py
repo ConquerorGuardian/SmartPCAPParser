@@ -1,4 +1,4 @@
-"""Иконка приложения: рисует `assets/app.ico` и `assets/logo.png`.
+"""Иконка приложения: рисует `assets/app.ico` без внешних картинок.
 
 Нужен Pillow (только для перерисовки иконки, приложению он не нужен):
 
@@ -93,14 +93,11 @@ def draw_icon(size: int) -> Image.Image:
 def main() -> int:
     ASSETS.mkdir(exist_ok=True)
 
-    logo = draw_icon(256)
-    logo.save(ASSETS / "logo.png")
-
     sizes = [16, 24, 32, 48, 64, 128, 256]
     frames = [draw_icon(size) for size in sizes]
     frames[-1].save(ASSETS / "app.ico", format="ICO", sizes=[(s, s) for s in sizes])
 
-    print("Готово:", ASSETS / "app.ico", "и", ASSETS / "logo.png")
+    print("Готово:", ASSETS / "app.ico")
     for size in sizes:
         print("  {}x{}".format(size, size))
     return 0
