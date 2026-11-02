@@ -13,7 +13,6 @@ VERSION = "1.9.1"
 
 FILES = [
     "SmartPCAPParser.exe",
-    "SmartPCAPParser-portable.exe",
     "SmartPCAPParser-{}-windows-x64.zip".format(VERSION),
     "SHA256SUMS.txt",
 ]
@@ -21,18 +20,16 @@ FILES = [
 NOTE = """ЧТО ПРИКРЕПИТЬ К РЕЛИЗУ v{version}
 =====================================
 
-Файлы в этой папке (все пять):
+Файлы в этой папке (все четыре):
 
-  1. SmartPCAPParser.exe                       — один файл, распаковка в %TEMP%
-  2. SmartPCAPParser-portable.exe              — один файл, распаковка в tmp рядом
-                                                 с собой, нужен, если %TEMP%
-                                                 недоступен и выходит ошибка
-                                                 «Could not create temporary
-                                                 directory»
-  3. SmartPCAPParser-{version}-windows-x64.zip — та же программа папкой,
-                                                 вообще без распаковки
-  4. SHA256SUMS.txt                            — контрольные суммы
-  5. LICENSE                                   — лицензия MIT
+  1. SmartPCAPParser.exe                       — основной, один файл
+  2. SmartPCAPParser-{version}-windows-x64.zip — та же программа папкой
+  3. SHA256SUMS.txt                            — контрольные суммы
+  4. LICENSE                                   — лицензия MIT
+
+Один файл распаковывается в папку tmp рядом с собой, а не в %TEMP%.
+Поэтому он запускается и там, где переменная TEMP сломана или недоступна.
+Папка tmp после закрытия остаётся пустой, её можно удалить.
 
 Если публикуете через git-тег, всё это прикрепит GitHub Actions само:
   git tag v{version}

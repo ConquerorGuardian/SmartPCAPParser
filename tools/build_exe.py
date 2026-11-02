@@ -1,6 +1,9 @@
 """Сборка Windows-приложения (exe) через PyInstaller.
 
-По умолчанию собирается **один файл** — его достаточно скачать и запустить:
+По умолчанию собирается **один файл** — его достаточно скачать и запустить.
+Он распаковывается в папку `tmp` рядом с собой, а не во временную папку
+Windows: на машинах со сломанной переменной `%TEMP%` обычная распаковка
+падает с «Could not create temporary directory».
 
     python tools/build_exe.py           # dist/SmartPCAPParser.exe
 
@@ -111,17 +114,17 @@ def make_zip(folder: Path) -> Path:
     return archive
 
 
-def run_pyinstaller(onedir: bool, splash: bool, portable: bool = False) -> Path:
+def run_pyinstaller(onedir: bool, splash: bool) -> Path:
     """Собирает вариант в отдельную папку и возвращает готовый артефакт.
 
     У onefile и onedir разные рабочие и выходные папки: когда обе сборки идут
     в один dist/, второй проход портит архив onefile, и exe падает с кодом -1.
 
-    portable — onefile, который распаковывается в папку tmp рядом с exe,
-    а не во временную папку Windows. Нужен там, где %TEMP% недоступен.
+    Одиночный файл распаковывается в папку tmp рядом с собой, а не в %TEMP%:
+    на машинах, где переменная TEMP сломана, обычная распаковка падает с
+    «Could not create temporary directory».
     """
-    mode = "onedir" if onedir else ("portable" if portable else "onefile")
-    name = "{}-portable".format(APP_NAME) if portable else APP_NAME
+    mode = "onedir" if onedir else "onefile"
     work = BUILD / mode
     out = work / "dist"
     env = dict(os.environ)
@@ -131,7 +134,7 @@ def run_pyinstaller(onedir: bool, splash: bool, portable: bool = False) -> Path:
     command = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean", "--windowed",
-        "--name", name,
+        "--name", APP_NAME,
         "--icon", str(ROOT / "assets" / "app.ico"),
         "--version-file", str(version_file),
         "--collect-all", "customtkinter",
@@ -148,7 +151,6 @@ def run_pyinstaller(onedir: bool, splash: bool, portable: bool = False) -> Path:
     ]
     if not onedir:
         command.append("--onefile")
-    if portable:
         # Относительный путь: распаковка идёт в tmp рядом с exe, откуда запуск.
         command += ["--runtime-tmpdir", "tmp"]
     if splash and (ROOT / "assets" / "logo.png").exists():
@@ -158,7 +160,7 @@ def run_pyinstaller(onedir: bool, splash: bool, portable: bool = False) -> Path:
     print("Сборка:", mode, "...")
     subprocess.run(command, cwd=ROOT, env=env, check=True)
 
-    produced = out / (APP_NAME if onedir else "{}.exe".format(name))
+    produced = out / (APP_NAME if onedir else "{}.exe".format(APP_NAME))
     if not produced.exists():
         raise FileNotFoundError(str(produced))
     return produced
@@ -170,9 +172,6 @@ def main() -> int:
                         help="собрать папку вместо одного файла")
     parser.add_argument("--both", action="store_true",
                         help="собрать и один файл, и папку (для релиза)")
-    parser.add_argument("--portable", action="store_true",
-                        help="onefile, который распаковывается в tmp рядом с exe "
-                             "(выручает, когда %TEMP% недоступен)")
     parser.add_argument("--splash", action="store_true",
                         help="показывать заставку, пока распаковывается onefile")
     args = parser.parse_args()
@@ -196,18 +195,15 @@ def main() -> int:
     if BUILD.exists():
         shutil.rmtree(BUILD, ignore_errors=True)
 
-    modes: list[tuple[bool, bool]] = []
+    modes: list[bool] = []
     if args.both:
-        # Для релиза: обычный один файл, папка и portable-вариант.
-        modes = [(False, False), (True, False), (False, True)]
-    elif args.portable:
-        modes = [(False, True)]
+        modes = [False, True]      # сначала один файл, потом папка
     else:
-        modes = [(args.onedir, False)]
+        modes = [args.onedir]
 
-    for onedir, portable in modes:
+    for onedir in modes:
         try:
-            produced = run_pyinstaller(onedir, args.splash, portable)
+            produced = run_pyinstaller(onedir, args.splash)
         except subprocess.CalledProcessError as exc:
             print("Сборка не удалась, код", exc.returncode)
             return exc.returncode
@@ -222,8 +218,7 @@ def main() -> int:
             shutil.copytree(produced, folder)
             artifact = make_zip(folder)
         else:
-            name = "{}-portable.exe".format(APP_NAME) if portable else "{}.exe".format(APP_NAME)
-            artifact = DIST / name
+            artifact = DIST / "{}.exe".format(APP_NAME)
             artifact.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(produced, artifact)
         print("Готово: {} ({:.1f} МБ)".format(
@@ -236,7 +231,6 @@ def main() -> int:
     check_targets = [
         item for item in (
             DIST / "{}.exe".format(APP_NAME),
-            DIST / "{}-portable.exe".format(APP_NAME),
             DIST / APP_NAME / "{}.exe".format(APP_NAME),
         ) if item.exists()
     ]

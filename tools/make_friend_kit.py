@@ -52,9 +52,7 @@ def main() -> int:
     version = (ROOT / "parser" / "__init__.py").read_text(encoding="utf-8")
     version = version.split('__version__ = "')[1].split('"')[0]
 
-    exe = DIST / "SmartPCAPParser-portable.exe"
-    if not exe.exists():
-        exe = DIST / "SmartPCAPParser.exe"
+    exe = DIST / "SmartPCAPParser.exe"
     if not exe.exists():
         print("Нет exe — сначала: python tools/build_exe.py --both")
         return 1
@@ -64,8 +62,6 @@ def main() -> int:
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
 
-    # Внутри архива имя обычное: portable-сборка распаковывается в tmp рядом
-    # с exe, и другу не надо думать, какой из файлов брать.
     shutil.copy2(exe, staging / "SmartPCAPParser.exe")
     (staging / "КАК-ЗАПУСТИТЬ.txt").write_text(
         INSTRUCTIONS.format(version=version), encoding="utf-8")
