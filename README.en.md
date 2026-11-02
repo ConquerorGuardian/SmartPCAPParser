@@ -86,7 +86,7 @@ with the right filter.
 - Not the whole Wireshark syntax: `tcp.analysis.*` and `http.response.*` are
   missing.
 - Headers stay in memory, payloads are read on demand up to 64 MB per stream.
-  The table keeps 500 000 rows, bigger files are paged.
+  Up to 50 000 rows are shown at once, bigger results are paged by 5 000.
 - ATM, MTP2 and Frame Relay frames are not decoded.
 - No TLS decryption.
 - Findings are structural, not reputation based. The app says "this host sends
