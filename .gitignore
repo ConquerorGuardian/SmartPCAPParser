@@ -23,6 +23,7 @@ dist/
 build-debug/
 dist-debug/
 tmp/
+.tmp-build/
 
 # Резервные копии проекта
 backups/
@@ -51,3 +52,8 @@ release/
 # Лежат на диске и в бэкапе, но в публичный репозиторий не идут.
 internal/
 smartpcap_selftest.txt
+smartpcap_crash.txt
+
+# Дампы, брошенные в корень проекта: в репозиторий им не надо
+/*.pcap
+/*.pcapng

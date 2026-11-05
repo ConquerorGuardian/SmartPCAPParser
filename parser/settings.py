@@ -7,12 +7,19 @@
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
 
-SETTINGS_DIR = Path.home() / ".smartpcapapp"
-SETTINGS_FILE = SETTINGS_DIR / "settings.json"
+# Тесты подменяют путь через SMARTPCAP_SETTINGS, чтобы не читать и не портить
+# настройки человека. При обычном запуске это домашняя папка.
+_OVERRIDE = os.environ.get("SMARTPCAP_SETTINGS")
+SETTINGS_FILE = (
+    Path(_OVERRIDE) if _OVERRIDE
+    else Path.home() / ".smartpcapapp" / "settings.json"
+)
+SETTINGS_DIR = SETTINGS_FILE.parent
 
 # Геометрия окна в формате Tk: 1380x820 или 1380x820+120+80.
 GEOMETRY_RE = re.compile(r"^\d{3,4}x\d{3,4}([+-]\d{1,4}[+-]\d{1,4})?$")
