@@ -4,8 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 rem Запуск из исходников на Windows: двойной клик по этому файлу.
-rem Готовому приложению он не нужен: release\SmartPCAPParser.exe
-rem (или dist\SmartPCAPParser.exe) запускается сам, без Python.
+rem Готовому приложению он не нужен: exe со страницы релизов запускается сам.
 
 rem Ищем интерпретатор, в котором есть customtkinter.
 set "PY=py"
@@ -30,16 +29,16 @@ exit /b 0
 
 :nopython
 echo [ошибка] Python не найден.
-echo Поставьте Python 3.11+ с python.org либо запустите готовый exe:
-echo     release\SmartPCAPParser.exe
+echo Поставьте Python 3.11+ с python.org либо скачайте готовый exe:
+echo     страница Releases на GitHub, файл SmartPCAPParser.exe
 goto :fail
 
 :nodeps
 echo [нужна библиотека] В Python нет customtkinter.
 echo Установите её одной командой:
 echo     %PY% -m pip install -r requirements.txt
-echo Либо запустите готовый exe без Python:
-echo     release\SmartPCAPParser.exe
+echo Либо скачайте готовый exe без Python:
+echo     страница Releases на GitHub, файл SmartPCAPParser.exe
 goto :fail
 
 :fail
