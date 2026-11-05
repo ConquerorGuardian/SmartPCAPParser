@@ -1,4 +1,4 @@
-# Публикация проекта на GitHub одной командой.
+﻿# Публикация проекта на GitHub одной командой.
 #
 #   .\tools\publish.ps1 -Repo https://github.com/Whitemoneydealer/SmartPCAPParser.git
 #   .\tools\publish.ps1 -Repo ssh://git@ssh.github.com:443/Whitemoneydealer/SmartPCAPParser.git
@@ -62,7 +62,7 @@ if ($existing) {
 Write-Host "Отправляю ветку main..."
 git push -u origin main
 if ($LASTEXITCODE -ne 0) {
-    Fail "push не прошёл. Для HTTPS нужен Personal Access Token, для SSH — ключ (см. internal/GITHUB-ACCESS.md)"
+    Fail "push не прошёл. Для HTTPS нужен Personal Access Token, для SSH нужен ключ (см. internal/GITHUB-ACCESS.md)"
 }
 
 Write-Host "Ставлю тег $Tag..."
