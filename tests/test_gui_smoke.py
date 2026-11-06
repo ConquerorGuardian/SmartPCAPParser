@@ -71,6 +71,14 @@ def run_flow() -> None:
         app.update()
         assert "Не нашёл сетевых индикаторов" in app.status_label.cget("text")
 
+        # «Покажи всё» просит показать файл целиком, а не ругается.
+        app.command_entry.delete(0, "end")
+        app.command_entry.insert(0, "покажи всё")
+        app._apply_command()
+        app.update()
+        assert app.current_filter == "", app.current_filter
+        assert "Показан весь файл" in app.status_label.cget("text")
+
         # Кнопка-чип быстрого фильтра + запись в историю.
         app._run_quick_filter("покажи dns трафик")
         app.update()

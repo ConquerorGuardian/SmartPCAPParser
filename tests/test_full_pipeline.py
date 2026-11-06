@@ -109,6 +109,16 @@ def test_host_pipeline():
     print("PASS: test_host_pipeline")
 
 
+def test_show_all_pipeline():
+    """«покажи всё» не фильтрует: видно все пакеты файла."""
+    query, filter_string, result = run("покажи всё")
+    assert filter_string == "", filter_string
+    assert result.error is None
+    assert result.total_packets == 13, result.total_packets
+    assert result.matched_packets == 13, result.matched_packets
+    print("PASS: test_show_all_pipeline")
+
+
 if __name__ == "__main__":
     tests = [
         test_ip_direction,
@@ -121,6 +131,7 @@ if __name__ == "__main__":
         test_port_range,
         test_ipv6_pipeline,
         test_host_pipeline,
+        test_show_all_pipeline,
     ]
 
     failed = 0

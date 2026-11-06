@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser.engine import NaturalLanguageFilterEngine
+from parser.engine import NaturalLanguageFilterEngine, is_show_all
 from parser.filters import generate_filter
 
 
@@ -419,6 +419,22 @@ def test_domain_is_not_a_raw_filter():
     print("PASS: test_domain_is_not_a_raw_filter")
 
 
+def test_show_all_phrases():
+    """«Покажи всё» показывает файл, а мусор по-прежнему отвергается."""
+    engine = NaturalLanguageFilterEngine()
+
+    for phrase in ("покажи всё", "покажи все пакеты", "покажи весь трафик",
+                   "покажи пакеты", "покажи трафик"):
+        assert is_show_all(phrase), phrase
+        assert generate_filter(engine.parse(phrase)) == "", phrase
+
+    for phrase in ("покажи tcp", "абракадабра", "покажи сайт example.com",
+                   "пакеты на порт 80"):
+        assert not is_show_all(phrase), phrase
+
+    print("PASS: test_show_all_phrases")
+
+
 if __name__ == "__main__":
     tests = [
         test_simple_ip,
@@ -448,6 +464,7 @@ if __name__ == "__main__":
         test_help_intent,
         test_raw_display_filter,
         test_domain_is_not_a_raw_filter,
+        test_show_all_phrases,
     ]
 
     failed = 0

@@ -59,7 +59,7 @@ if sys.stdout is None:
     except OSError:
         pass
 
-from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
+from parser.engine import NaturalLanguageFilterEngine, is_show_all  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
 from parser.matcher import compile_filter  # noqa: E402
 from parser.pcap_handler import PcapHandler  # noqa: E402
@@ -141,7 +141,7 @@ def show_packets(pcap_path: str, command: str, limit: int) -> int:
     engine = NaturalLanguageFilterEngine()
     query = engine.parse(command)
     filter_string = generate_filter(query)
-    if not filter_string:
+    if not filter_string and not is_show_all(command):
         print("Не нашёл индикаторов в команде.")
         return 2
 
@@ -151,7 +151,7 @@ def show_packets(pcap_path: str, command: str, limit: int) -> int:
         print(f"Ошибка: {result.error}")
         return 1
 
-    print(f"Фильтр: {filter_string}")
+    print(f"Фильтр: {filter_string}" if filter_string else "Фильтр: нет, показан весь файл")
     print(f"Найдено {result.matched_packets} из {result.total_packets} пакетов")
     print("")
     header = "{:>6}  {:>10}  {:>8}  {:>17}  {:>6}  {:>17}  {:>6}  {:>6}".format(

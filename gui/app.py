@@ -71,7 +71,7 @@ from gui.utils import (  # noqa: E402
     table_limit,
 )
 from parser import __version__ as APP_VERSION  # noqa: E402
-from parser.engine import NaturalLanguageFilterEngine  # noqa: E402
+from parser.engine import NaturalLanguageFilterEngine, is_show_all  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
 from parser.matcher import compile_filter  # noqa: E402
 from parser.pcap_handler import PcapHandler, PcapResult  # noqa: E402
@@ -483,6 +483,14 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
         filter_string = generate_filter(query)
         if not filter_string:
+            if is_show_all(command):
+                self._reset_filter()
+                self._set_status(
+                    "Показан весь файл: {} пакетов.".format(
+                        format_count(len(self.packets))
+                    )
+                )
+                return
             self._set_status(
                 "Не нашёл сетевых индикаторов в команде. Укажите IP, порт, MAC "
                 "или протокол: например \"покажи dns трафик\"."
