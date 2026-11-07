@@ -19,6 +19,8 @@ MODULES = [
     "tests.test_handler",
     "tests.test_streams",
     "tests.test_stats",
+    "tests.test_nodecard",
+    "tests.test_wireshark",
     "tests.test_verdict",
     "tests.test_settings",
     "tests.test_corpus",

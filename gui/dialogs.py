@@ -23,6 +23,7 @@ from gui.utils import (
     hex_dump,
 )
 from parser import __version__ as APP_VERSION
+from parser.node_card import build_node_card, format_node_card
 from parser.pcap_reader import read_payloads
 from parser.stats import format_bytes
 from parser.streams import (
@@ -94,6 +95,101 @@ class DialogsMixin:
         ).pack(pady=(0, 12))
 
         window.verdict_textbox = textbox
+        window.after(50, window.lift)
+
+    # ------------------------------------------------------------------
+    # Карточка узла
+    # ------------------------------------------------------------------
+    def _show_node_card(self, address: str) -> None:
+        """Сводка по одному адресу: сколько отправил, получил и с кем говорил."""
+        address = (address or "").strip()
+        if not address:
+            self._set_status("Не выбран адрес для карточки.")
+            return
+        if not self.packets:
+            self._set_status("Сначала откройте файл .pcap или .pcapng.")
+            return
+
+        card = build_node_card(self.packets, address)
+        if card is None:
+            self._set_status(f"В файле нет пакетов с адресом {address}.")
+            return
+
+        text = format_node_card(card)
+        window = ctk.CTkToplevel(self)
+        window.title(f"Узел {address}")
+        window.geometry("700x600")
+        window.transient(self)
+        window.configure(fg_color=theme_module.THEME["bg"])
+
+        header = ctk.CTkLabel(
+            window,
+            text="Локальная сеть" if card.local else "Внешний адрес",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color=theme_module.THEME["accent"],
+        )
+        header.pack(anchor="w", padx=16, pady=(14, 0))
+
+        textbox = ctk.CTkTextbox(
+            window,
+            font=ctk.CTkFont(family="Consolas", size=12),
+            wrap="word",
+            fg_color=theme_module.THEME["panel"],
+            border_color=theme_module.THEME["border"],
+            border_width=1,
+            text_color=theme_module.THEME["text"],
+        )
+        textbox.pack(fill="both", expand=True, padx=14, pady=(8, 10))
+        textbox.insert("1.0", text)
+        textbox.configure(state="disabled")
+
+        buttons = ctk.CTkFrame(window, fg_color="transparent")
+        buttons.pack(fill="x", padx=14, pady=(0, 12))
+
+        def show_packets() -> None:
+            window.destroy()
+            self._show_packets_by_filter(f"ip.addr=={address}")
+
+        def copy_text() -> None:
+            window.clipboard_clear()
+            window.clipboard_append(text)
+            self._set_status(f"Карточка узла {address} скопирована.")
+
+        ctk.CTkButton(
+            buttons,
+            text="Пакеты узла",
+            width=140,
+            height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=theme_module.THEME["accent"],
+            hover_color=theme_module.THEME["accent_hover"],
+            text_color=theme_module.THEME["accent_text"],
+            command=show_packets,
+        ).pack(side="left")
+        ctk.CTkButton(
+            buttons,
+            text="Копировать",
+            width=130,
+            height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            fg_color=theme_module.THEME["button"],
+            hover_color=theme_module.THEME["button_hover"],
+            text_color=theme_module.THEME["text"],
+            command=copy_text,
+        ).pack(side="left", padx=(8, 0))
+        ctk.CTkButton(
+            buttons,
+            text="Закрыть",
+            width=110,
+            height=32,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            fg_color=theme_module.THEME["button"],
+            hover_color=theme_module.THEME["button_hover"],
+            text_color=theme_module.THEME["text"],
+            command=window.destroy,
+        ).pack(side="right")
+
+        window.node_textbox = textbox
         window.after(50, window.lift)
 
     # ------------------------------------------------------------------

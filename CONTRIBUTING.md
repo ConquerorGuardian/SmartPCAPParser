@@ -16,7 +16,7 @@ python main.py
 ## Проверить
 
 ```bash
-python -m tests.run_all      # 190 проверок
+python -m tests.run_all      # 199 проверок
 ruff check .                 # линтер, строки до 100 символов
 python tools/build_exe.py --both   # один файл и папка с zip
 ```

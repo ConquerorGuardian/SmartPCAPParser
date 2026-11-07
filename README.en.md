@@ -50,6 +50,16 @@ ip.addr==10.0.0.1 and http
 frame.len > 1000
 ```
 
+## One address in one click
+
+Right-click a packet, "Карточка узла", pick an address. The card shows packets
+sent and received, bytes both ways, local ports and peers, and applies
+`ip.addr==...` with one button.
+
+If Wireshark is installed, the "В Wireshark" button (`Ctrl+Shift+W`) opens the
+same capture with the current filter. Wireshark is optional, the app never
+needs it.
+
 ## Simple and experienced mode
 
 First start is simple: open a file, type a phrase, Enter. Six protocol buttons,
@@ -97,7 +107,7 @@ with the right filter.
 ```bash
 python tools/build_exe.py          # single file
 python tools/build_exe.py --onedir # folder
-python -m tests.run_all            # 190 checks
+python -m tests.run_all            # 199 checks
 python tools/bench.py --mb 100     # speed
 ```
 

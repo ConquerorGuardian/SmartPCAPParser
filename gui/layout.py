@@ -509,11 +509,14 @@ class LayoutMixin:
         self._secondary_button(bar, "Экспорт CSV", self._export_csv).grid(
             row=0, column=4, padx=(8, 0)
         )
+        self._secondary_button(
+            bar, "В Wireshark", self._open_in_wireshark, width=118
+        ).grid(row=0, column=5, padx=(8, 0))
         self._secondary_button(bar, "Справка", self._show_help, width=92).grid(
-            row=0, column=5, padx=(8, 0)
+            row=0, column=6, padx=(8, 0)
         )
         self._secondary_button(bar, "Сброс фильтра", self._clear_command, width=120).grid(
-            row=0, column=6, padx=(8, 0)
+            row=0, column=7, padx=(8, 0)
         )
 
     def _build_tabbar(self, parent, row: int) -> None:

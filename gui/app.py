@@ -70,6 +70,7 @@ from gui.utils import (  # noqa: E402
     resource_path,
     table_limit,
 )
+from gui.wireshark import open_dump  # noqa: E402
 from parser import __version__ as APP_VERSION  # noqa: E402
 from parser.engine import NaturalLanguageFilterEngine, is_show_all  # noqa: E402
 from parser.filters import generate_filter  # noqa: E402
@@ -155,6 +156,8 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self.bind("<Control-o>", lambda event: self._open_file())
         self.bind("<Control-t>", lambda event: self._follow_selected_stream())
         self.bind("<Control-l>", lambda event: self._toggle_theme())
+        self.bind("<Control-Shift-W>", lambda event: self._open_in_wireshark())
+        self.bind("<Control-Shift-w>", lambda event: self._open_in_wireshark())
         self.bind("<Control-f>", self._focus_search)
         self.bind("<Control-Prior>", lambda event: self._go_page(-1))
         self.bind("<Control-Next>", lambda event: self._go_page(1))
@@ -323,6 +326,20 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             return
 
         self._load_path(Path(path))
+
+    def _open_in_wireshark(self) -> None:
+        """Передаёт дамп и текущий фильтр в установленный Wireshark."""
+        if not self.pcap_path:
+            self._set_status("Сначала откройте файл дампа.")
+            return
+        ok, message = open_dump(self.pcap_path, self.current_filter or "")
+        self._set_status(message)
+        if not ok and "не найден" in message.lower():
+            messagebox.showinfo(
+                "Wireshark не найден",
+                message + "\n\nЧто делать, написано в справке (F1).",
+                parent=self,
+            )
 
     def _load_path(self, path: Path) -> None:
         """Читает файл в фоне — общая точка для диалога и кнопки «пример»."""
@@ -670,6 +687,21 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             return
         self._load_path(target)
 
+    def destroy(self) -> None:
+        """Закрывает дочерние окна по одному.
+
+        Если этого не сделать, Tk при выходе с открытым окном вердикта,
+        карточки или потока ругается «can't delete Tcl command». Отменённые
+        задачи after усугубляют это, поэтому окно убираем из children вручную.
+        """
+        for name, child in list(self.children.items()):
+            if isinstance(child, ctk.CTkToplevel):
+                try:
+                    child.destroy()
+                except Exception:  # noqa: BLE001
+                    self.children.pop(name, None)
+        super().destroy()
+
     def _on_close(self) -> None:
         """Сохраняет настройки и закрывает окно."""
         # Снимаем свои отложенные задачи: иначе Tk ругается в stderr,
@@ -794,6 +826,8 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         self.bind("<Control-o>", lambda event: self._open_file())
         self.bind("<Control-t>", lambda event: self._follow_selected_stream())
         self.bind("<Control-l>", lambda event: self._toggle_theme())
+        self.bind("<Control-Shift-W>", lambda event: self._open_in_wireshark())
+        self.bind("<Control-Shift-w>", lambda event: self._open_in_wireshark())
         self.bind("<F1>", lambda event: self._show_help())
 
     # ------------------------------------------------------------------

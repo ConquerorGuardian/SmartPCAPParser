@@ -1092,6 +1092,48 @@ def run_missing_file_flow() -> None:
     print("PASS: run_missing_file_flow")
 
 
+def run_node_card_flow() -> None:
+    """Карточка узла и кнопка «В Wireshark»."""
+    import customtkinter as ctk
+
+    from gui.app import SmartPcapApp
+
+    app = SmartPcapApp()
+    app.withdraw()
+    try:
+        # Без файла кнопка Wireshark честно просит сначала открыть дамп.
+        app._open_in_wireshark()
+        assert "Сначала откройте файл" in app.status_label.cget("text")
+
+        packets, error = app.handler.load(SAMPLE, keep_payload=True)
+        assert error is None, error
+        app.pcap_path = SAMPLE
+        app.packets = packets
+        app._render(app.handler.apply(packets, "", limit=200))
+        app.update()
+
+        app._show_node_card("93.184.216.34")
+        app.update()
+        windows = [
+            child for child in app.winfo_children()
+            if isinstance(child, ctk.CTkToplevel)
+        ]
+        assert windows, "карточка узла не открылась"
+        window = windows[-1]
+        text = window.node_textbox.get("1.0", "end")
+        assert "Узел 93.184.216.34" in text, text
+        assert "внешний адрес" in text, text
+        assert "отправил 2, получил 2" in text, text
+        assert "Собеседники:" in text, text
+        # Окно закроется вместе с приложением, без ошибок Tk.
+
+        app._show_node_card("10.9.9.9")
+        assert "нет пакетов с адресом" in app.status_label.cget("text")
+    finally:
+        shutdown(app)
+    print("PASS: run_node_card_flow")
+
+
 def display_available() -> bool:
     """Проверяет, можно ли вообще открыть окно (на серверах без экрана — нет)."""
     try:
@@ -1123,7 +1165,7 @@ if __name__ == "__main__":
         run_search_flow, run_export_flow, run_layout_flow, run_big_file_flow,
         run_lazy_stream_flow, run_udp_stream_flow, run_pagination_flow,
         run_recent_flow, run_cancel_load_flow, run_initial_file_flow,
-        run_missing_file_flow,
+        run_missing_file_flow, run_node_card_flow,
     ]
     failed = 0
     for flow in flows:

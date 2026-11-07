@@ -13,6 +13,7 @@ import tkinter as tk
 
 from gui import theme as theme_module
 from parser.matcher import FilterError, compile_filter
+from parser.node_card import looks_like_ip
 from parser.stats import (
     conversations,
     endpoints,
@@ -202,6 +203,11 @@ class StatsMixin:
         menu.add_command(
             label=labels[kind], command=lambda: self._stats_open_row(text, kind)
         )
+        if kind == "endpoint" and looks_like_ip(text):
+            menu.add_command(
+                label="Карточка узла",
+                command=lambda value=text: self._show_node_card(value),
+            )
         menu.add_command(
             label="Скопировать", command=lambda: self._copy_stats_text(text)
         )

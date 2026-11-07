@@ -10,11 +10,13 @@ THEME и PROTOCOL_TINTS читаются через theme_module: оттенки
 """
 
 import re
+import tkinter as tk
 from tkinter import filedialog, messagebox
 
 from gui import theme as theme_module
 from gui.theme import APP_TITLE, COLUMN_ANCHORS, SORT_KEYS
 from gui.utils import MAX_ROWS, PAGE_SIZE, VIEW_LIMIT, format_count
+from parser.node_card import looks_like_ip
 from parser.pcap_handler import COLUMNS, PcapResult
 
 
@@ -367,6 +369,17 @@ class TableMixin:
 
         values = self.tree.item(row, "values")
         if values:
+            node_menu = tk.Menu(menu, tearoff=0)
+            for candidate in dict.fromkeys((values[3], values[5])):
+                candidate = str(candidate)
+                if candidate and candidate != "?" and looks_like_ip(candidate):
+                    node_menu.add_command(
+                        label=candidate,
+                        command=lambda value=candidate: self._show_node_card(value),
+                    )
+            if node_menu.index("end") is not None:
+                menu.add_cascade(label="Карточка узла", menu=node_menu)
+
             source, src_port, destination, dst_port = (
                 values[3], values[4], values[5], values[6]
             )
