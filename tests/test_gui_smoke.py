@@ -1132,6 +1132,33 @@ def run_node_card_flow() -> None:
         app._render(app.handler.apply(packets, "", limit=200))
         app.update()
 
+        # Кнопка «В Wireshark» передаёт номер выделенного пакета.
+        import gui.app as gui_app
+
+        calls = []
+        original = gui_app.open_dump
+
+        def fake_open(path, filter_string="", frame=None):
+            calls.append((Path(path).name, filter_string, frame))
+            return True, "Открываю в Wireshark пакет {}.".format(frame)
+
+        gui_app.open_dump = fake_open
+        try:
+            target = None
+            for item in app.tree.get_children():
+                if app.tree.item(item, "values")[0] == "6":
+                    target = item
+                    break
+            assert target is not None, "в таблице нет пакета 6"
+            app.tree.selection_set(target)
+            app.update()
+            app._open_in_wireshark()
+            assert calls and calls[-1][2] == 6, calls
+            app._open_in_wireshark(11)
+            assert calls[-1][2] == 11, calls
+        finally:
+            gui_app.open_dump = original
+
         app._show_node_card("93.184.216.34")
         app.update()
         windows = [

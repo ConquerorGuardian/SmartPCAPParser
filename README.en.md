@@ -57,8 +57,9 @@ sent and received, bytes both ways, local ports and peers, and applies
 `ip.addr==...` with one button.
 
 If Wireshark is installed, the "В Wireshark" button (`Ctrl+Shift+W`) opens the
-same capture with the current filter. Wireshark is optional, the app never
-needs it.
+same capture, applies the current filter and jumps to the selected packet.
+Right-click a row and pick "Открыть в Wireshark" to jump to that exact packet.
+Wireshark is optional, the app never needs it.
 
 ## Simple and experienced mode
 
@@ -107,7 +108,7 @@ with the right filter.
 ```bash
 python tools/build_exe.py          # single file
 python tools/build_exe.py --onedir # folder
-python -m tests.run_all            # 199 checks
+python -m tests.run_all            # 200 checks
 python tools/bench.py --mb 100     # speed
 ```
 

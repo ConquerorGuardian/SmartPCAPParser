@@ -16,12 +16,20 @@ from pathlib import Path
 ENV_OVERRIDE = "SMARTPCAP_WIRESHARK"
 
 
-def build_command(executable, dump_path, filter_string: str = "") -> list[str]:
-    """Аргументы запуска: файл сразу с display-фильтром, если он есть."""
-    command = [str(executable), str(dump_path)]
+def build_command(
+    executable, dump_path, filter_string: str = "", frame: int | None = None
+) -> list[str]:
+    """Аргументы запуска: фильтр, переход к пакету и сам файл через -r.
+
+    -g работает вместе с -r, поэтому файл передаём именно флагом.
+    """
+    command = [str(executable)]
     filter_string = (filter_string or "").strip()
     if filter_string:
         command += ["-Y", filter_string]
+    if frame:
+        command += ["-g", str(int(frame))]
+    command += ["-r", str(dump_path)]
     return command
 
 
@@ -78,7 +86,9 @@ def find_wireshark() -> str | None:
     return None
 
 
-def open_dump(dump_path, filter_string: str = "") -> tuple[bool, str]:
+def open_dump(
+    dump_path, filter_string: str = "", frame: int | None = None
+) -> tuple[bool, str]:
     """Запускает Wireshark. Возвращает (получилось, сообщение для статуса)."""
     if not dump_path:
         return False, "Сначала откройте файл дампа."
@@ -95,9 +105,11 @@ def open_dump(dump_path, filter_string: str = "") -> tuple[bool, str]:
 
     try:
         subprocess.Popen(
-            build_command(executable, path, filter_string),
+            build_command(executable, path, filter_string, frame),
             close_fds=True,
         )
     except OSError as exc:
         return False, f"Не удалось запустить Wireshark: {exc}"
+    if frame:
+        return True, f"Открываю в Wireshark пакет {frame}."
     return True, "Открываю дамп в Wireshark."

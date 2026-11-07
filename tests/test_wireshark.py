@@ -22,17 +22,35 @@ def test_command_with_filter():
     )
     assert command == [
         r"C:\Program Files\Wireshark\Wireshark.exe",
-        r"C:\dump.pcap",
         "-Y",
         "tcp.port==80",
+        "-r",
+        r"C:\dump.pcap",
     ], command
     print("PASS: test_command_with_filter")
+
+
+def test_command_with_frame():
+    """Номер пакета уходит через -g: Wireshark открывает нужную строку."""
+    command = build_command("wireshark", "dump.pcap", "tcp.port==80", 6)
+    assert command == [
+        "wireshark",
+        "-Y",
+        "tcp.port==80",
+        "-g",
+        "6",
+        "-r",
+        "dump.pcap",
+    ], command
+    command = build_command("wireshark", "dump.pcap", "", 6)
+    assert command == ["wireshark", "-g", "6", "-r", "dump.pcap"], command
+    print("PASS: test_command_with_frame")
 
 
 def test_command_without_filter():
     """Пустой фильтр не добавляет лишних аргументов."""
     command = build_command("wireshark", "dump.pcapng", "   ")
-    assert command == ["wireshark", "dump.pcapng"], command
+    assert command == ["wireshark", "-r", "dump.pcapng"], command
     print("PASS: test_command_without_filter")
 
 
@@ -68,6 +86,7 @@ def test_open_without_file():
 if __name__ == "__main__":
     tests = [
         test_command_with_filter,
+        test_command_with_frame,
         test_command_without_filter,
         test_override_points_to_file,
         test_open_without_file,

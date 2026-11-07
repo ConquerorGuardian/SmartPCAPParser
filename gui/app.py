@@ -327,12 +327,18 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
 
         self._load_path(Path(path))
 
-    def _open_in_wireshark(self) -> None:
-        """Передаёт дамп и текущий фильтр в установленный Wireshark."""
+    def _open_in_wireshark(self, frame: int | None = None) -> None:
+        """Передаёт дамп и текущий фильтр в Wireshark, открывая нужный пакет.
+
+        Без явного номера берётся выделенная строка: так кнопка на панели
+        открывает ровно тот пакет, на который человек смотрит.
+        """
         if not self.pcap_path:
             self._set_status("Сначала откройте файл дампа.")
             return
-        ok, message = open_dump(self.pcap_path, self.current_filter or "")
+        if frame is None:
+            frame = self._selected_frame()
+        ok, message = open_dump(self.pcap_path, self.current_filter or "", frame)
         self._set_status(message)
         if not ok and "не найден" in message.lower():
             messagebox.showinfo(
@@ -340,6 +346,19 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
                 message + "\n\nЧто делать, написано в справке (F1).",
                 parent=self,
             )
+
+    def _selected_frame(self) -> int | None:
+        """Номер кадра в выделенной строке таблицы, если он есть."""
+        selection = self.tree.selection()
+        if not selection:
+            return None
+        values = self.tree.item(selection[0], "values")
+        if not values:
+            return None
+        try:
+            return int(values[0])
+        except (TypeError, ValueError):
+            return None
 
     def _load_path(self, path: Path) -> None:
         """Читает файл в фоне — общая точка для диалога и кнопки «пример»."""

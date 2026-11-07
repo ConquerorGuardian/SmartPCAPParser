@@ -366,6 +366,15 @@ class TableMixin:
         menu.add_command(
             label="Поток TCP (Ctrl+T)", command=self._follow_selected_stream
         )
+        try:
+            frame = int(self.tree.item(row, "values")[0])
+        except (IndexError, TypeError, ValueError):
+            frame = None
+        if frame is not None and self.pcap_path:
+            menu.add_command(
+                label=f"Открыть в Wireshark (пакет {frame})",
+                command=lambda value=frame: self._open_in_wireshark(value),
+            )
 
         values = self.tree.item(row, "values")
         if values:
