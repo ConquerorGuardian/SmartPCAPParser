@@ -84,6 +84,8 @@ class PcapHandler:
 
     def __init__(self, preview_count: int = DEFAULT_PREVIEW_COUNT) -> None:
         self.preview_count = preview_count
+        # Файл прочитан не до конца: текст предупреждения для интерфейса.
+        self.last_warning: str | None = None
 
     # ------------------------------------------------------------------
     # Основная работа
@@ -130,14 +132,18 @@ class PcapHandler:
             should_stop: Проверка отмены чтения; True — прекратить.
         """
         try:
+            warnings: list[str] = []
             packets, _linktype = read_packets(
                 pcap_path,
                 keep_payload=keep_payload,
                 progress=progress,
                 should_stop=should_stop,
+                warnings=warnings,
             )
+            self.last_warning = " ".join(dict.fromkeys(warnings)) or None
             return packets, None
         except PcapError as exc:
+            self.last_warning = None
             return [], str(exc)
 
     def apply(

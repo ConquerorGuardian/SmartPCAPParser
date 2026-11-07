@@ -133,7 +133,7 @@ def run_pyinstaller(onedir: bool) -> Path:
 
     command = [
         sys.executable, "-m", "PyInstaller",
-        "--noconfirm", "--clean", "--windowed",
+        "--noconfirm", "--clean", "--windowed", "--noupx",
         "--name", APP_NAME,
         "--icon", str(ROOT / "assets" / "app.ico"),
         "--version-file", str(version_file),

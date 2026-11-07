@@ -97,7 +97,7 @@ with the right filter.
 ```bash
 python tools/build_exe.py          # single file
 python tools/build_exe.py --onedir # folder
-python -m tests.run_all            # 182 checks
+python -m tests.run_all            # 184 checks
 python tools/bench.py --mb 100     # speed
 ```
 

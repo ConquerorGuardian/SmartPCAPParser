@@ -155,6 +155,50 @@ def test_broken_file():
     raise AssertionError("ожидалась ошибка PcapError")
 
 
+def test_truncated_pcap_keeps_readable_packets():
+    """Обрезанный pcap: целые пакеты остаются, причина в предупреждении."""
+    import struct
+    import tempfile
+
+    header = struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1)
+    good = struct.pack("<IIII", 1, 0, 20, 20) + b"\x00" * 20
+    broken = struct.pack("<IIII", 2, 0, 200, 200) + b"\x00" * 4
+    with tempfile.NamedTemporaryFile(suffix=".pcap", delete=False) as handle:
+        handle.write(header + good + broken)
+        path = Path(handle.name)
+
+    warnings: list[str] = []
+    try:
+        packets, _linktype = read_packets(path, warnings=warnings)
+    finally:
+        path.unlink(missing_ok=True)
+
+    assert len(packets) == 1, len(packets)
+    assert warnings and "обрывается" in warnings[0].lower(), warnings
+    print("PASS: test_truncated_pcap_keeps_readable_packets")
+
+
+def test_truncated_pcapng_warns():
+    """Обрезанный pcapng: предупреждение вместо молчаливого пустого списка."""
+    import struct
+    import tempfile
+
+    data = b"\x0a\x0d\x0d\x0a" + struct.pack("<I", 28) + b"\x01\x00\x00\x00"
+    with tempfile.NamedTemporaryFile(suffix=".pcapng", delete=False) as handle:
+        handle.write(data)
+        path = Path(handle.name)
+
+    warnings: list[str] = []
+    try:
+        packets, _linktype = read_packets(path, warnings=warnings)
+    finally:
+        path.unlink(missing_ok=True)
+
+    assert packets == [], packets
+    assert warnings and "SHB" in warnings[0], warnings
+    print("PASS: test_truncated_pcapng_warns")
+
+
 def test_port_to_protocol_map():
     """Порты новых протоколов распознаются так же, как в Wireshark."""
     from parser.pcap_reader import _detect_tcp_app, _detect_udp_app
@@ -607,6 +651,8 @@ if __name__ == "__main__":
         test_relative_time,
         test_missing_file,
         test_broken_file,
+        test_truncated_pcap_keeps_readable_packets,
+        test_truncated_pcapng_warns,
         test_port_to_protocol_map,
         test_payload_protocols,
         test_dns_over_tcp_packet,

@@ -20,12 +20,17 @@ FILES = [
 NOTE = """ЧТО ПРИКРЕПИТЬ К РЕЛИЗУ v{version}
 =====================================
 
-Файлы в этой папке (все четыре):
+К релизу на GitHub прикрепляют три файла:
 
   1. SmartPCAPParser.exe                       — основной, один файл
   2. SmartPCAPParser-{version}-windows-x64.zip — та же программа папкой
   3. SHA256SUMS.txt                            — контрольные суммы
-  4. LICENSE                                   — лицензия MIT
+
+LICENSE лежит рядом для порядка, GitHub и так берёт его из репозитория.
+
+В папке есть ещё два файла, к релизу их не прикрепляют:
+  ОТПРАВИТЬ-В-РЕЛИЗ.txt (эта инструкция) и
+  SmartPCAPParser-{version}-friend.zip (exe и инструкция для друга).
 
 Один файл распаковывается в папку tmp рядом с собой, а не в %TEMP%.
 Поэтому он запускается и там, где переменная TEMP сломана или недоступна.
@@ -38,7 +43,7 @@ NOTE = """ЧТО ПРИКРЕПИТЬ К РЕЛИЗУ v{version}
 Если загружаете вручную: github.com → Releases → Draft a new release:
   Tag:      v{version}
   Title:    Smart PCAP Parser {version}
-  Файлы:    перетащите из этой папки
+  Файлы:    exe, zip и SHA256SUMS.txt из этой папки
   Описание: скопируйте из internal/RELEASE-NOTES.md
 
 ПРОВЕРКА ПЕРЕД ЗАГРУЗКОЙ
@@ -46,6 +51,10 @@ NOTE = """ЧТО ПРИКРЕПИТЬ К РЕЛИЗУ v{version}
   SmartPCAPParser.exe --selftest     (в консоли: Итог: OK, код 0)
   certutil -hashfile SmartPCAPParser.exe SHA256
       — сравнить с первой строкой SHA256SUMS.txt
+
+VirusTotal: загружать файл не нужно, вставьте хэш из SHA256SUMS.txt в
+адрес virustotal.com/gui/file/<хэш>. Одно-два срабатывания мелких движков
+на сборке PyInstaller — обычное дело.
 
 Файл НЕ подписан сертификатом: SmartScreen может предупредить. Это ожидаемо,
 в описании релиза есть пояснение.

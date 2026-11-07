@@ -152,6 +152,8 @@ def show_packets(pcap_path: str, command: str, limit: int) -> int:
         return 1
 
     print(f"Фильтр: {filter_string}" if filter_string else "Фильтр: нет, показан весь файл")
+    if handler.last_warning:
+        print(f"Внимание: {handler.last_warning}")
     print(f"Найдено {result.matched_packets} из {result.total_packets} пакетов")
     print("")
     header = "{:>6}  {:>10}  {:>8}  {:>17}  {:>6}  {:>17}  {:>6}  {:>6}".format(

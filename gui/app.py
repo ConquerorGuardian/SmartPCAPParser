@@ -433,6 +433,9 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         if big:
             status += (" Файл большой — тела TCP подгружаются по требованию, "
                        "когда открываете поток.")
+        if getattr(self.handler, "last_warning", None):
+            status += (" Файл прочитан не полностью: "
+                       + str(self.handler.last_warning))
         if self.packets and all(packet.protocol == "?" for packet in self.packets):
             # Экзотический тип канала: честно говорим, что разбирать нечего.
             status += (" Тип канала в этом файле не поддерживается: кадры видно, "

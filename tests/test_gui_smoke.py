@@ -1057,6 +1057,7 @@ def run_missing_file_flow() -> None:
     app = SmartPcapApp()
     app.withdraw()
     bad = Path(__file__).parent / "_linktype_99.pcap"
+    truncated = Path(__file__).parent / "_truncated_tail.pcap"
     try:
         app._open_initial_file(Path("нет-такого-файла.pcap"))
         app.update()
@@ -1072,8 +1073,21 @@ def run_missing_file_flow() -> None:
         assert pump(app, lambda: bool(app.packets)), "файл с linktype не прочитан"
         status = app.status_label.cget("text")
         assert "не поддерживается" in status, status
+
+        # Обрезанный дамп: читаемое показываем, но честно предупреждаем.
+        good = struct.pack("<IIII", 0, 0, 20, 20) + b"\x00" * 20
+        broken_tail = struct.pack("<IIII", 1, 0, 200, 200) + b"\x00" * 4
+        truncated.write_bytes(
+            struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1)
+            + good + broken_tail
+        )
+        app._load_path(truncated)
+        assert pump(app, lambda: "не полностью" in app.status_label.cget("text")), \
+            app.status_label.cget("text")
+        assert len(app.packets) == 1, len(app.packets)
     finally:
         bad.unlink(missing_ok=True)
+        truncated.unlink(missing_ok=True)
         shutdown(app)
     print("PASS: run_missing_file_flow")
 

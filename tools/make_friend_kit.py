@@ -77,7 +77,24 @@ def main() -> int:
     print("Архив: {} ({:.1f} МБ)".format(
         archive, archive.stat().st_size / (1024 * 1024)))
     shutil.rmtree(staging, ignore_errors=True)
-    print("SHA256:", sha256(archive))
+
+    digest = sha256(archive)
+    note = OUT / "ОТПРАВИТЬ-В-РЕЛИЗ.txt"
+    if note.exists():
+        text = note.read_text(encoding="utf-8")
+        marker = "\nДЛЯ ДРУГА\n"
+        if marker in text:
+            text = text.split(marker)[0].rstrip() + "\n"
+        text += (
+            "\nДЛЯ ДРУГА\n"
+            "---------\n"
+            "  {name}\n"
+            "  SHA256: {digest}\n"
+            "К релизу этот архив не прикрепляют, он для пересылки.\n"
+        ).format(name=archive.name, digest=digest)
+        note.write_text(text, encoding="utf-8")
+
+    print("SHA256:", digest)
     print("Можно отправлять как есть: внутри exe и инструкция.")
     return 0
 

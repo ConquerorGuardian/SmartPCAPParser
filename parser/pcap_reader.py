@@ -983,9 +983,10 @@ class _PcapFileReader:
 
     def __init__(self, stream: BinaryIO) -> None:
         self.stream = stream
+        self.warning: str | None = None
         header = stream.read(24)
         if len(header) < 24:
-            raise PcapError("Файл слишком короткий для формата pcap")
+            raise PcapError("Файл слишком короткий: заголовок pcap обрезан.")
 
         magic = struct.unpack("<I", header[:4])[0]
         self.nanoseconds = False
@@ -999,7 +1000,7 @@ class _PcapFileReader:
                 self.endian = ">"
                 self.nanoseconds = magic_be == PCAP_MAGIC_NS_BE
             else:
-                raise PcapError("Не найдена сигнатура pcap")
+                raise PcapError("Не найдена сигнатура pcap: это не pcap или файл повреждён.")
 
         (_magic, _vmaj, _vmin, _tz, _sig, self.snaplen,
          self.linktype) = struct.unpack(self.endian + "IHHIIII", header)
@@ -1007,19 +1008,24 @@ class _PcapFileReader:
     def packets(self) -> Iterator[tuple[float, int, int, bytes]]:
         """Отдаёт (timestamp, captured_len, wire_len, data)."""
         header_struct = struct.Struct(self.endian + "IIII")
+        number = 0
         while True:
             header = self.stream.read(16)
             if not header:
                 break
             if len(header) < 16:
+                self.warning = "Файл обрывается: заголовок последней записи неполный."
                 break
 
             ts_sec, ts_frac, incl_len, orig_len = header_struct.unpack(header)
             if incl_len > 262144:
-                raise PcapError("Некорректная длина пакета в файле")
+                raise PcapError("Некорректная длина пакета: файл повреждён или это не дамп.")
 
             data = self.stream.read(incl_len)
+            number += 1
             if len(data) < incl_len:
+                self.warning = (f"Файл обрывается: пакет {number} не дочитан "
+                                "до конца.")
                 break
 
             fraction = ts_frac / (1_000_000_000 if self.nanoseconds else 1_000_000)
@@ -1038,6 +1044,7 @@ class _PcapngFileReader:
         self.stream = stream
         self.interfaces: list[dict] = []
         self.endian = "<"
+        self.warning: str | None = None
 
     @staticmethod
     def _options(data: bytes, endian: str) -> dict:
@@ -1064,7 +1071,7 @@ class _PcapngFileReader:
             if bom == 0x1A2B3C4D:
                 self.endian = ">"
             else:
-                raise PcapError("Не найдена сигнатура pcapng")
+                raise PcapError("Не найдена сигнатура pcapng: это не pcapng или файл повреждён.")
 
     def _read_idb(self, body: bytes) -> None:
         if len(body) < 8:
@@ -1098,6 +1105,7 @@ class _PcapngFileReader:
             if not header:
                 break
             if len(header) < 8:
+                self.warning = "Файл обрывается: заголовок блока неполный."
                 break
 
             block_type_le = struct.unpack("<I", header[:4])[0]
@@ -1108,16 +1116,22 @@ class _PcapngFileReader:
                     total_len = struct.unpack(">I", header[4:8])[0]
                 body = self.stream.read(total_len - 12)
                 self.stream.read(4)   # завершающая длина блока
+                if len(body) < total_len - 12:
+                    self.warning = "Файл обрывается: блок SHB не дочитан."
+                    break
                 self._read_shb(body)
                 continue
 
             block_type = struct.unpack(self.endian + "I", header[:4])[0]
             total_len = struct.unpack(self.endian + "I", header[4:8])[0]
             if not self._plausible(total_len):
-                raise PcapError("Некорректная длина блока pcapng")
+                raise PcapError("Некорректная длина блока pcapng: файл повреждён.")
 
             body = self.stream.read(total_len - 12)
             self.stream.read(4)
+            if len(body) < total_len - 12:
+                self.warning = "Файл обрывается: блок pcapng не дочитан."
+                break
 
             if block_type == self.IDB:
                 self._read_idb(body)
@@ -1150,7 +1164,8 @@ def _detect_format(stream: BinaryIO) -> str:
         return "pcap"
     if head == b"\x4d\x3c\xb2\xa1" or head == b"\xa1\xb2\x3c\x4d":
         return "pcap"
-    raise PcapError("Не удалось определить формат файла (ожидается pcap или pcapng)")
+    raise PcapError("Не удалось определить формат файла. Это не pcap/pcapng "
+                    "или файл повреждён.")
 
 
 def _open_capture(path: Path) -> tuple[BinaryIO, bool]:
@@ -1168,6 +1183,7 @@ def read_packets(
     keep_payload: bool = False,
     progress: Callable[[float | None], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
+    warnings: list[str] | None = None,
 ) -> tuple[list[Packet], int]:
     """
     Читает файл захвата и возвращает (список пакетов, linktype).
@@ -1182,6 +1198,8 @@ def read_packets(
         should_stop: Необязательная проверка «пользователь нажал Отмена».
             Вызывается каждые 256 пакетов; при True чтение прекращается
             с PcapError("Чтение отменено").
+        warnings: Необязательный список: если файл обрывается на середине,
+            сюда добавляется текст предупреждения, а прочитанное остаётся.
 
     Исключения формата заворачиваются в PcapError, файл закрывается.
     """
@@ -1234,6 +1252,8 @@ def read_packets(
                     tick(number)
                 if progress is not None:
                     progress(1.0)
+                if reader.warning and warnings is not None:
+                    warnings.append(reader.warning)
                 return packets, linktype
 
             reader = _PcapngFileReader(stream)
@@ -1247,6 +1267,8 @@ def read_packets(
                 tick(number)
             if progress is not None:
                 progress(1.0)
+            if reader.warning and warnings is not None:
+                warnings.append(reader.warning)
             return packets, (reader.interfaces[0]["linktype"] if reader.interfaces else LINKTYPE_ETHERNET)
         finally:
             stream.close()
