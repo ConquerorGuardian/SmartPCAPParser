@@ -45,18 +45,99 @@ def toplevels(app) -> list:
             if isinstance(child, ctk.CTkToplevel) and child.winfo_exists()]
 
 
+def _print_window(widget):
+    """Снимает окно через PrintWindow: без чужих окон и краёв рабочего стола."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    gdi32 = ctypes.windll.gdi32
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+    user32.PrintWindow.argtypes = [wintypes.HWND, wintypes.HDC, wintypes.UINT]
+    gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi32.CreateCompatibleDC.restype = wintypes.HDC
+    gdi32.CreateDIBSection.restype = wintypes.HANDLE
+    gdi32.SelectObject.argtypes = [wintypes.HDC, wintypes.HANDLE]
+    gdi32.DeleteObject.argtypes = [wintypes.HANDLE]
+    gdi32.DeleteDC.argtypes = [wintypes.HDC]
+
+    class BitmapInfoHeader(ctypes.Structure):
+        _fields_ = [
+            ("biSize", wintypes.DWORD),
+            ("biWidth", wintypes.LONG),
+            ("biHeight", wintypes.LONG),
+            ("biPlanes", wintypes.WORD),
+            ("biBitCount", wintypes.WORD),
+            ("biCompression", wintypes.DWORD),
+            ("biSizeImage", wintypes.DWORD),
+            ("biXPelsPerMeter", wintypes.LONG),
+            ("biYPelsPerMeter", wintypes.LONG),
+            ("biClrUsed", wintypes.DWORD),
+            ("biClrImportant", wintypes.DWORD),
+        ]
+
+    class BitmapInfo(ctypes.Structure):
+        _fields_ = [("bmiHeader", BitmapInfoHeader),
+                    ("bmiColors", wintypes.DWORD * 3)]
+
+    gdi32.CreateDIBSection.argtypes = [
+        wintypes.HDC,
+        ctypes.POINTER(BitmapInfo),
+        wintypes.UINT,
+        ctypes.POINTER(ctypes.c_void_p),
+        wintypes.HANDLE,
+        wintypes.DWORD,
+    ]
+
+    hwnd = widget.winfo_id()
+    rect = wintypes.RECT()
+    user32.GetClientRect(hwnd, ctypes.byref(rect))
+    width, height = rect.right, rect.bottom
+    if width < 50 or height < 50:
+        raise RuntimeError(f"окно {width}x{height}")
+
+    bmi = BitmapInfo()
+    bmi.bmiHeader.biSize = ctypes.sizeof(BitmapInfoHeader)
+    bmi.bmiHeader.biWidth = width
+    bmi.bmiHeader.biHeight = -height
+    bmi.bmiHeader.biPlanes = 1
+    bmi.bmiHeader.biBitCount = 32
+
+    hdc = user32.GetDC(hwnd)
+    memory_dc = gdi32.CreateCompatibleDC(hdc)
+    bits = ctypes.c_void_p()
+    bitmap = gdi32.CreateDIBSection(
+        hdc, ctypes.byref(bmi), 0, ctypes.byref(bits), None, 0
+    )
+    gdi32.SelectObject(memory_dc, bitmap)
+    try:
+        # 2 = PW_RENDERFULLCONTENT, иначе некоторые окна выходят чёрными.
+        if not user32.PrintWindow(hwnd, memory_dc, 2):
+            raise RuntimeError("PrintWindow вернул 0")
+        buffer = ctypes.string_at(bits, width * height * 4)
+    finally:
+        gdi32.DeleteObject(bitmap)
+        gdi32.DeleteDC(memory_dc)
+        user32.ReleaseDC(hwnd, hdc)
+
+    return Image.frombuffer(
+        "RGBA", (width, height), buffer, "raw", "BGRA", 0, 1
+    ).convert("RGB")
+
+
 def grab(widget, name: str) -> None:
     widget.update_idletasks()
-    pump(widget, 0.3)
-    x, y = widget.winfo_rootx(), widget.winfo_rooty()
-    width, height = widget.winfo_width(), widget.winfo_height()
-    if width < 200 or height < 200:
-        raise RuntimeError(f"{name}: окно слишком маленькое ({width}x{height})")
-    image = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-    # 256 цветов хватает для интерфейса, зато файл в разы легче. Без
-    # дизеринга: он добавляет шум и раздувает png на пустом месте.
-    image = image.convert("RGB").quantize(
-        colors=256, method=Image.MEDIANCUT, dither=Image.NONE)
+    pump(widget, 0.4)
+    try:
+        image = _print_window(widget)
+    except Exception as exc:  # noqa: BLE001
+        print("PrintWindow не сработал ({}), снимаю с экрана".format(exc))
+        x, y = widget.winfo_rootx(), widget.winfo_rooty()
+        width, height = widget.winfo_width(), widget.winfo_height()
+        image = ImageGrab.grab(bbox=(x, y, x + width, y + height)).convert("RGB")
     path = OUT / name
     image.save(path, optimize=True)
     print("готово:", path.name, image.size,

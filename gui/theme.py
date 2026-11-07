@@ -18,7 +18,7 @@ THEME и PROTOCOL_TINTS меняются при переключении тем�
 APP_TITLE = "Smart PCAP Parser"
 APP_SUBTITLE = "Фильтры Wireshark обычными словами"
 
-SIDEBAR_WIDTH = 340
+SIDEBAR_WIDTH = 360
 
 # ---------------------------------------------------------------------------
 # Палитры: одна точка правки для обеих тем.

@@ -90,8 +90,9 @@ class LayoutMixin:
             justify="left",
         ).pack(anchor="w", pady=(3, 0))
 
-        self._build_file_card(content, row=1)
-        self._build_command_card(content, row=2)
+        # Ввод словами — главное действие, поэтому он стоит первым.
+        self._build_command_card(content, row=1)
+        self._build_file_card(content, row=2)
         self._build_quick_card(content, row=3)
         self._build_examples_card(content, row=4)
         self._build_history_card(content, row=5)
@@ -184,9 +185,11 @@ class LayoutMixin:
             text="Открыть файл   Ctrl+O",
             height=36,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            fg_color=theme_module.THEME["accent"],
-            hover_color=theme_module.THEME["accent_hover"],
-            text_color=theme_module.THEME["accent_text"],
+            fg_color=theme_module.THEME["button"],
+            hover_color=theme_module.THEME["button_hover"],
+            border_width=1,
+            border_color=theme_module.THEME["border"],
+            text_color=theme_module.THEME["text"],
             command=self._open_file,
         ).pack(fill="x", padx=14, pady=(0, 6))
 
@@ -221,19 +224,20 @@ class LayoutMixin:
 
     def _build_command_card(self, parent, row: int) -> None:
         card = self._card(parent)
+        card.configure(border_color=theme_module.THEME["accent"])
         card.grid(row=row, column=0, sticky="ew", padx=18, pady=(0, 10))
-        self._card_title(card, "КОМАНДА")
+        self._card_title(card, "СПРОСИТЕ СЛОВАМИ")
 
         self.command_entry = ctk.CTkEntry(
             card,
-            height=38,
+            height=46,
             placeholder_text="покажи http трафик с айпи 10.0.0.5",
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             fg_color=theme_module.THEME["panel"],
             border_color=theme_module.THEME["border"],
             text_color=theme_module.THEME["text"],
         )
-        self.command_entry.pack(fill="x", padx=14, pady=(0, 4))
+        self.command_entry.pack(fill="x", padx=14, pady=(2, 6))
         self.command_entry.bind("<Return>", self._apply_command)
         self.command_entry.bind("<KeyRelease>", self._on_command_key)
         self.command_entry.bind("<Escape>", self._clear_command)
@@ -244,7 +248,7 @@ class LayoutMixin:
             text="Наберите команду — покажу, какой фильтр получится.",
             anchor="w",
             justify="left",
-            wraplength=280,
+            wraplength=300,
             font=ctk.CTkFont(family="Consolas", size=11),
             text_color=theme_module.THEME["muted"],
         )
@@ -253,8 +257,8 @@ class LayoutMixin:
         ctk.CTkButton(
             card,
             text="Применить   Enter",
-            height=34,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            height=40,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             fg_color=theme_module.THEME["accent"],
             hover_color=theme_module.THEME["accent_hover"],
             text_color=theme_module.THEME["accent_text"],
@@ -481,7 +485,14 @@ class LayoutMixin:
         )
 
     def _build_toolbar(self, parent, row: int) -> None:
-        bar = ctk.CTkFrame(parent, fg_color="transparent")
+        # Одна панель над таблицей: фильтр и действия в общей рамке.
+        bar = ctk.CTkFrame(
+            parent,
+            fg_color=theme_module.THEME["card"],
+            corner_radius=12,
+            border_width=1,
+            border_color=theme_module.THEME["border"],
+        )
         bar.grid(row=row, column=0, sticky="ew", padx=16, pady=(16, 8))
         bar.grid_columnconfigure(0, weight=1)
 
@@ -495,18 +506,22 @@ class LayoutMixin:
             text_color=theme_module.THEME["accent"],
             placeholder_text="здесь появится фильтр Wireshark",
         )
-        self.filter_entry.grid(row=0, column=0, sticky="ew")
+        self.filter_entry.grid(
+            row=0, column=0, sticky="ew", padx=(12, 0), pady=(12, 0)
+        )
 
         self._secondary_button(bar, "Копировать", self._copy_filter, width=112).grid(
-            row=0, column=1, padx=(8, 0)
+            row=0, column=1, padx=(8, 0), pady=(12, 0)
         )
         self._secondary_button(bar, "Показать все", self._show_all).grid(
-            row=0, column=2, padx=(8, 0)
+            row=0, column=2, padx=(8, 12), pady=(12, 0)
         )
 
         # Вторая строка: на узком окне кнопки иначе уезжают за правый край.
         actions = ctk.CTkFrame(bar, fg_color="transparent")
-        actions.grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        actions.grid(
+            row=1, column=0, columnspan=3, sticky="w", padx=(12, 0), pady=(8, 12)
+        )
         buttons = (
             ("Поток TCP", self._follow_selected_stream, 128),
             ("Экспорт CSV", self._export_csv, 128),
