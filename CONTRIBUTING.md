@@ -16,7 +16,7 @@ python main.py
 ## Проверить
 
 ```bash
-python -m tests.run_all      # 184 проверки
+python -m tests.run_all      # 190 проверок
 ruff check .                 # линтер, строки до 100 символов
 python tools/build_exe.py --both   # один файл и папка с zip
 ```
@@ -25,6 +25,18 @@ python tools/build_exe.py --both   # один файл и папка с zip
 конце модуля, иначе раннер его не увидит.
 
 Тесты пишут настройки во временную папку, ваш `~/.smartpcapapp` не трогают.
+`tests/test_docs.py` дополнительно сверяет таблицы команд в README и
+`docs/EXAMPLES.md` с движком: поправили фразу, поправьте и таблицу.
+
+Картинки для `docs/` пересобираются из живого окна:
+
+```bash
+python tools/make_screenshots.py
+```
+
+Нужен экран и Pillow (`pip install -r requirements-dev.txt`). Скрипт снимает
+главное окно, статистику, детали, поток, вердикт, простой режим и светлую
+тему, а настройки после себя возвращает как были.
 
 ## Куда смотреть
 

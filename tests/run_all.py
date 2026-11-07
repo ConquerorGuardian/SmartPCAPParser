@@ -22,7 +22,9 @@ MODULES = [
     "tests.test_verdict",
     "tests.test_settings",
     "tests.test_corpus",
+    "tests.test_fuzz",
     "tests.test_golden",
+    "tests.test_docs",
     "tests.test_full_pipeline",
     "tests.test_gui_smoke",
 ]
