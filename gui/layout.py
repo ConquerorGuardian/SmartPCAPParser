@@ -503,21 +503,22 @@ class LayoutMixin:
         self._secondary_button(bar, "Показать все", self._show_all).grid(
             row=0, column=2, padx=(8, 0)
         )
-        self._secondary_button(bar, "Поток TCP", self._follow_selected_stream).grid(
-            row=0, column=3, padx=(8, 0)
+
+        # Вторая строка: на узком окне кнопки иначе уезжают за правый край.
+        actions = ctk.CTkFrame(bar, fg_color="transparent")
+        actions.grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        buttons = (
+            ("Поток TCP", self._follow_selected_stream, 128),
+            ("Экспорт CSV", self._export_csv, 128),
+            ("В Wireshark", self._open_in_wireshark, 118),
+            ("Справка", self._show_help, 92),
+            ("Сброс фильтра", self._clear_command, 120),
         )
-        self._secondary_button(bar, "Экспорт CSV", self._export_csv).grid(
-            row=0, column=4, padx=(8, 0)
-        )
-        self._secondary_button(
-            bar, "В Wireshark", self._open_in_wireshark, width=118
-        ).grid(row=0, column=5, padx=(8, 0))
-        self._secondary_button(bar, "Справка", self._show_help, width=92).grid(
-            row=0, column=6, padx=(8, 0)
-        )
-        self._secondary_button(bar, "Сброс фильтра", self._clear_command, width=120).grid(
-            row=0, column=7, padx=(8, 0)
-        )
+        for column, (text, command, width) in enumerate(buttons):
+            padx = (0, 0) if column == 0 else (8, 0)
+            self._secondary_button(actions, text, command, width=width).grid(
+                row=0, column=column, padx=padx
+            )
 
     def _build_tabbar(self, parent, row: int) -> None:
         bar = ctk.CTkFrame(parent, fg_color="transparent")

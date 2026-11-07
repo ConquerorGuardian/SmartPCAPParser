@@ -624,6 +624,26 @@ def run_layout_flow() -> None:
         )
         assert app.tree.xview() != (0.0, 1.0), app.tree.xview()
         assert app.x_scroll.winfo_ismapped(), "нет горизонтальной прокрутки"
+
+        # Кнопки панели целиком внутри окна, даже на 1080 px.
+        import customtkinter as ctk
+
+        buttons = {}
+
+        def collect(widget):
+            for child in widget.winfo_children():
+                if isinstance(child, ctk.CTkButton):
+                    buttons.setdefault(child.cget("text"), child)
+                collect(child)
+
+        collect(app)
+        for label in ("В Wireshark", "Справка", "Сброс фильтра"):
+            button = buttons.get(label)
+            assert button is not None, f"нет кнопки {label}"
+            assert button.winfo_ismapped(), f"кнопка {label} не показана"
+            right = button.winfo_rootx() - app.winfo_rootx() + button.winfo_width()
+            assert right <= app.winfo_width(), (label, right, app.winfo_width())
+
         app._scroll_sideways(type("Event", (), {"delta": -120})())
         assert app.tree.xview()[0] > 0.0, app.tree.xview()
         app.tree.xview_moveto(0.0)
