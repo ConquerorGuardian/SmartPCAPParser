@@ -666,7 +666,7 @@ class DialogsMixin:
         ctk.CTkLabel(
             window,
             text="Smart PCAP Parser {}  ·  MIT  ·  "
-                 "github.com/Whitemoneydealer/SmartPCAPParser".format(APP_VERSION),
+                 "github.com/ConquerorGuardian/SmartPCAPParser".format(APP_VERSION),
             font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color=theme_module.THEME["muted"],
             anchor="w",

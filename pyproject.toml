@@ -9,7 +9,7 @@ description = "Фильтры Wireshark из обычных слов: анали
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "Whitemoneydealer" }]
+authors = [{ name = "ConquerorGuardian" }]
 keywords = ["pcap", "pcapng", "wireshark", "network", "traffic-analysis", "tkinter"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -41,8 +41,8 @@ dnd = ["tkinterdnd2>=0.4"]
 smartpcap = "main:main"
 
 [project.urls]
-Homepage = "https://github.com/Whitemoneydealer/SmartPCAPParser"
-"Bug Tracker" = "https://github.com/Whitemoneydealer/SmartPCAPParser/issues"
+Homepage = "https://github.com/ConquerorGuardian/SmartPCAPParser"
+"Bug Tracker" = "https://github.com/ConquerorGuardian/SmartPCAPParser/issues"
 
 [tool.setuptools]
 py-modules = ["main"]

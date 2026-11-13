@@ -7,9 +7,9 @@ body:
     attributes:
       value: |
         Спасибо за отчёт. Перед отправкой проверьте:
-        [FAQ](https://github.com/Whitemoneydealer/SmartPCAPParser/blob/main/docs/FAQ.md)
-        и [чего программа не умеет](https://github.com/Whitemoneydealer/SmartPCAPParser/blob/main/README.md#чего-нет).
-        Уязвимости не публикуйте здесь, для них есть [SECURITY.md](https://github.com/Whitemoneydealer/SmartPCAPParser/blob/main/SECURITY.md).
+        [FAQ](https://github.com/ConquerorGuardian/SmartPCAPParser/blob/main/docs/FAQ.md)
+        и [чего программа не умеет](https://github.com/ConquerorGuardian/SmartPCAPParser/blob/main/README.md#чего-нет).
+        Уязвимости не публикуйте здесь, для них есть [SECURITY.md](https://github.com/ConquerorGuardian/SmartPCAPParser/blob/main/SECURITY.md).
 
   - type: input
     id: version

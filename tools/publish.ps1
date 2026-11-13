@@ -83,4 +83,4 @@ Write-Host ""
 Write-Host "Готово." -ForegroundColor Green
 Write-Host "Тег запускает .github/workflows/build.yml: тесты, сборка exe, релиз."
 Write-Host "Через несколько минут проверьте:"
-Write-Host "  https://github.com/Whitemoneydealer/SmartPCAPParser/releases"
+Write-Host "  https://github.com/ConquerorGuardian/SmartPCAPParser/releases"

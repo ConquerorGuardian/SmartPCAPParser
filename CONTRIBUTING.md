@@ -5,7 +5,7 @@
 ## Собрать и запустить
 
 ```bash
-git clone https://github.com/Whitemoneydealer/SmartPCAPParser.git
+git clone https://github.com/ConquerorGuardian/SmartPCAPParser.git
 cd SmartPCAPParser
 pip install -r requirements-dev.txt
 python main.py
