@@ -42,9 +42,15 @@ def run_module(name: str) -> bool:
         runpy.run_module(name, run_name="__main__")
         return True
     except SystemExit as exc:
+        if exc.code:
+            print(f"::error title=Тесты {name}::модуль завершился с кодом {exc.code}")
         return not exc.code
     except Exception:  # noqa: BLE001
-        traceback.print_exc()
+        detail = traceback.format_exc()
+        print(detail)
+        # Аннотация видна в GitHub Actions без скачивания логов.
+        last = detail.strip().splitlines()[-1][:900]
+        print(f"::error title=Тесты {name}::{last}")
         return False
 
 
