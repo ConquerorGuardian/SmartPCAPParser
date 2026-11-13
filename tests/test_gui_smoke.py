@@ -125,11 +125,11 @@ def run_flow() -> None:
 
         # Живая подсказка: что понято из введённой команды.
         app.command_entry.delete(0, "end")
-        app.command_entry.insert(0, "покажи http трафик с айпи 192.168.1.10")
+        app.command_entry.insert(0, "покажи http трафик с айпи 10.77.0.10")
         app._update_command_hint()
         hint = app.hint_label.cget("text")
         assert hint.startswith("→"), hint
-        assert "ip.addr==192.168.1.10" in hint, hint
+        assert "ip.addr==10.77.0.10" in hint, hint
 
         app.command_entry.delete(0, "end")
         app.command_entry.insert(0, "абракадабра")
@@ -138,7 +138,7 @@ def run_flow() -> None:
 
         # Точная причина, если ввод похож на индикатор, но сломан.
         app.command_entry.delete(0, "end")
-        app.command_entry.insert(0, "покажи айпи 192.168.1.999")
+        app.command_entry.insert(0, "покажи айпи 10.77.0.999")
         app._update_command_hint()
         assert "некорректен" in app.hint_label.cget("text"), app.hint_label.cget("text")
 
@@ -509,12 +509,12 @@ def run_verdict_flow() -> None:
             assert app.current_filter, "фильтр из находки не применился"
 
         # Фильтр по значению ячейки — без набора команды.
-        app._filter_by("src", "192.168.1.10")
+        app._filter_by("src", "10.77.0.10")
         app.update()
-        assert app.command_entry.get() == "покажи пакеты от 192.168.1.10", (
+        assert app.command_entry.get() == "покажи пакеты от 10.77.0.10", (
             app.command_entry.get()
         )
-        assert app.current_filter == "ip.src==192.168.1.10", app.current_filter
+        assert app.current_filter == "ip.src==10.77.0.10", app.current_filter
         assert len(app.tree.get_children()) > 0
 
         app._filter_by("port", "80")
@@ -701,7 +701,7 @@ def run_search_flow() -> None:
 
         # Поиск по адресу и по номеру порта.
         app.search_entry.delete(0, "end")
-        app.search_entry.insert(0, "8.8.8.8")
+        app.search_entry.insert(0, "203.0.113.53")
         app._apply_search()
         app.update()
         assert len(app.tree.get_children()) >= 1
@@ -1035,7 +1035,7 @@ def run_udp_stream_flow() -> None:
         assert windows, "окно потока UDP не открылось"
         window = windows[-1]
         assert "Поток UDP" in window.title(), window.title()
-        assert "8.8.8.8:53" in window.title(), window.title()
+        assert "203.0.113.53:53" in window.title(), window.title()
 
         window.stream_mode_switch.set("HEX")
         window.stream_render()
@@ -1159,7 +1159,7 @@ def run_node_card_flow() -> None:
         finally:
             gui_app.open_dump = original
 
-        app._show_node_card("93.184.216.34")
+        app._show_node_card("198.51.100.34")
         app.update()
         windows = [
             child for child in app.winfo_children()
@@ -1168,7 +1168,7 @@ def run_node_card_flow() -> None:
         assert windows, "карточка узла не открылась"
         window = windows[-1]
         text = window.node_textbox.get("1.0", "end")
-        assert "Узел 93.184.216.34" in text, text
+        assert "Узел 198.51.100.34" in text, text
         assert "внешний адрес" in text, text
         assert "отправил 2, получил 2" in text, text
         assert "Собеседники:" in text, text

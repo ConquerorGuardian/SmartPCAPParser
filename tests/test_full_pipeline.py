@@ -25,17 +25,17 @@ def run(command: str):
 
 
 def test_ip_direction():
-    query, filter_string, result = run("пакеты от 192.168.1.10")
-    assert filter_string == "ip.src==192.168.1.10", filter_string
+    query, filter_string, result = run("пакеты от 10.77.0.10")
+    assert filter_string == "ip.src==10.77.0.10", filter_string
     assert result.error is None
     assert result.matched_packets > 0
-    assert result.rows[0].source.startswith("192.168.1.10")
+    assert result.rows[0].source.startswith("10.77.0.10")
     print("PASS: test_ip_direction")
 
 
 def test_http_with_ip():
-    query, filter_string, result = run("покажи http трафик с айпи 192.168.1.10")
-    assert filter_string == "ip.addr==192.168.1.10 and http", filter_string
+    query, filter_string, result = run("покажи http трафик с айпи 10.77.0.10")
+    assert filter_string == "ip.addr==10.77.0.10 and http", filter_string
     assert result.matched_packets == 2, result.matched_packets
     assert all("HTTP" in row.info for row in result.rows)
     print("PASS: test_http_with_ip")
@@ -49,8 +49,8 @@ def test_port_list():
 
 
 def test_mac():
-    query, filter_string, result = run("покажи пакеты с мак адресом aa:bb:cc:dd:ee:01")
-    assert filter_string == "eth.addr==aa:bb:cc:dd:ee:01"
+    query, filter_string, result = run("покажи пакеты с мак адресом 02:00:00:00:00:01")
+    assert filter_string == "eth.addr==02:00:00:00:00:01"
     assert result.matched_packets == 13, result.matched_packets
     print("PASS: test_mac")
 

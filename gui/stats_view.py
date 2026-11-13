@@ -65,7 +65,7 @@ def conversation_filter(label: str) -> str:
 
 
 def _address(label: str) -> str:
-    """Убирает порт: «10.0.0.1:443» становится «10.0.0.1», IPv6 не трогаем."""
+    """Убирает порт: «10.88.0.1:443» становится «10.88.0.1», IPv6 не трогаем."""
     label = label.strip()
     if label.count(":") == 1:
         head, tail = label.rsplit(":", 1)

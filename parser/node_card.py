@@ -17,6 +17,23 @@ from parser.stats import format_bytes, format_duration
 PEERS_LIMIT = 12
 PORTS_LIMIT = 10
 
+# Только настоящие частные сети. Встроенный is_private в Python 3.13
+# считает частными и документальные диапазоны 198.51.100.0/24 и
+# 203.0.113.0/24, из-за чего тестовый трафик выглядел локальным.
+LOCAL_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in (
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",
+        "fc00::/7",
+        "fe80::/10",
+        "::1/128",
+    )
+)
+
 
 @dataclass(frozen=True)
 class Peer:
@@ -68,7 +85,7 @@ def is_local_address(address: str) -> bool:
         return False
     if ip.is_multicast:
         return False
-    return ip.is_loopback or ip.is_private or ip.is_link_local
+    return any(ip in network for network in LOCAL_NETWORKS)
 
 
 def looks_like_ip(value: str) -> bool:

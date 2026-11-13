@@ -252,7 +252,7 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
         else:
             self.hint_label.configure(
                 text="Не нашёл адрес, порт, мак или протокол. "
-                     "Пример: «http трафик с айпи 10.0.0.5».",
+                     "Пример: «http трафик с айпи 10.88.0.5».",
                 text_color=theme_module.THEME["danger"],
             )
 
@@ -273,7 +273,15 @@ class SmartPcapApp(ctk.CTk, LayoutMixin, TableMixin, StatsMixin, DialogsMixin):
             if not is_valid_ipv6(candidate):
                 return f"Адрес {candidate} похож на IPv6, но записан с ошибкой."
 
-        for match in re.finditer(r"\b\d{1,5}\b", text):
+        # Проверка порта не должна ругаться на октеты адресов и MAC.
+        without_addresses = re.sub(r"\d{1,3}(?:\.\d{1,3}){3}", " ", text)
+        without_addresses = re.sub(
+            r"\b[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}\b", " ", without_addresses
+        )
+        without_addresses = re.sub(
+            r"\b[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){2,}\b", " ", without_addresses
+        )
+        for match in re.finditer(r"\b\d{1,5}\b", without_addresses):
             value = int(match.group())
             if not 1 <= value <= 65535:
                 return f"Порт {value} вне диапазона 1–65535."

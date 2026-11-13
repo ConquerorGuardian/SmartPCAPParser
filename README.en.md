@@ -3,8 +3,8 @@
 Type a Russian phrase, get a Wireshark display filter and the matching packets.
 No tshark, no Wireshark, no AI.
 
-Instead of `ip.addr==192.168.1.10 and tcp.port==80` you write
-`покажи http трафик с айпи 192.168.1.10`. The app builds the filter, shows it
+Instead of `ip.addr==10.77.0.10 and tcp.port==80` you write
+`покажи http трафик с айпи 10.77.0.10`. The app builds the filter, shows it
 above the table and applies it to the capture. The same line can be pasted into
 Wireshark.
 
@@ -32,8 +32,8 @@ Python 3.11+, `customtkinter`, standard library for everything else.
 
 | You type | You get |
 | --- | --- |
-| `пакеты с айпи 192.168.1.1` | `ip.addr==192.168.1.1` |
-| `пакеты от 10.0.0.5` | `ip.src==10.0.0.5` |
+| `пакеты с айпи 10.77.0.1` | `ip.addr==10.77.0.1` |
+| `пакеты от 10.88.0.5` | `ip.src==10.88.0.5` |
 | `на порт 80` | `tcp.port==80` |
 | `порты 80 и 443` | `tcp.port==80,443` |
 | `покажи http трафик` | `http` |
@@ -46,7 +46,7 @@ Word order and endings do not matter. Everyday names work too: `общая па�
 
 ```
 tcp.port==443
-ip.addr==10.0.0.1 and http
+ip.addr==10.88.0.1 and http
 frame.len > 1000
 ```
 

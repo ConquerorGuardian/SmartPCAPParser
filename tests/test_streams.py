@@ -105,8 +105,8 @@ def test_flow_key_ignores_non_tcp():
 def test_follow_stream_http():
     stream = follow_stream(PACKETS, 6)
     assert stream is not None
-    assert format_endpoint(stream.client) == "192.168.1.10:40000"
-    assert format_endpoint(stream.server) == "93.184.216.34:80"
+    assert format_endpoint(stream.client) == "10.77.0.10:40000"
+    assert format_endpoint(stream.server) == "198.51.100.34:80"
     assert stream.packet_numbers == [4, 5, 6, 7]
     print("PASS: test_follow_stream_http")
 
@@ -140,8 +140,8 @@ def test_find_streams():
         (format_endpoint(s.client), format_endpoint(s.server)) for s in streams
     }
     assert len(streams) == 3
-    assert ("192.168.1.10:40000", "93.184.216.34:80") in pairs
-    assert ("192.168.1.10:40001", "104.16.0.1:443") in pairs
+    assert ("10.77.0.10:40000", "198.51.100.34:80") in pairs
+    assert ("10.77.0.10:40001", "203.0.113.44:443") in pairs
     print("PASS: test_find_streams")
 
 
@@ -184,8 +184,8 @@ def test_render_handles_binary():
 def test_summarize():
     stream = follow_stream(PACKETS, 6)
     text = summarize(stream)
-    assert "192.168.1.10:40000" in text
-    assert "93.184.216.34:80" in text
+    assert "10.77.0.10:40000" in text
+    assert "198.51.100.34:80" in text
     print("PASS: test_summarize")
 
 
@@ -216,17 +216,17 @@ def test_udp_flow():
     stream = follow_datagram_flow(packets, 2)
     assert stream is not None
     assert stream.kind == "UDP", stream.kind
-    assert stream.client == ("192.168.1.10", 10000), stream.client
-    assert stream.server == ("8.8.8.8", 53), stream.server
+    assert stream.client == ("10.77.0.10", 10000), stream.client
+    assert stream.server == ("203.0.113.53", 53), stream.server
     assert len(stream.packets) == 2
     assert stream.total_bytes > 0
     assert stream.client_to_server.stream.gaps == []
     assert b"\x07example\x03com" in stream.client_to_server.stream.data
 
     text = render_stream(stream, VIEW_BOTH, MODE_TEXT)
-    assert "192.168.1.10:10000" in text
-    assert "8.8.8.8:53" in text
-    assert summarize(stream).startswith("Поток 192.168.1.10:10000")
+    assert "10.77.0.10:10000" in text
+    assert "203.0.113.53:53" in text
+    assert summarize(stream).startswith("Поток 10.77.0.10:10000")
 
     # TCP-пакет не собирается как UDP-поток, и наоборот.
     assert follow_datagram_flow(packets, 6) is None

@@ -14,23 +14,23 @@ from parser.filters import generate_filter
 
 def test_simple_ip():
     engine = NaturalLanguageFilterEngine()
-    query = engine.parse("найди пакеты с айпи 192.168.1.1")
+    query = engine.parse("найди пакеты с айпи 10.77.0.1")
     assert query.intent == "show"
     assert query.has_ip()
     assert len(query.entities) == 1
-    assert query.entities[0].normalized_value == "192.168.1.1"
+    assert query.entities[0].normalized_value == "10.77.0.1"
     filter_str = generate_filter(query)
-    assert filter_str == "ip.addr==192.168.1.1", filter_str
+    assert filter_str == "ip.addr==10.77.0.1", filter_str
     print("PASS: test_simple_ip passed")
 
 
 def test_ip_src():
     engine = NaturalLanguageFilterEngine()
-    query = engine.parse("пакеты от 10.0.0.5")
+    query = engine.parse("пакеты от 10.88.0.5")
     assert query.has_ip()
     assert query.entities[0].direction == "src"
     filter_str = generate_filter(query)
-    assert filter_str == "ip.src==10.0.0.5", filter_str
+    assert filter_str == "ip.src==10.88.0.5", filter_str
     print("PASS: test_ip_src passed")
 
 
@@ -73,10 +73,10 @@ def test_port_list():
 
 def test_ip_before_port_no_direction():
     engine = NaturalLanguageFilterEngine()
-    query = engine.parse("покажи http трафик с айпи 192.168.1.10")
+    query = engine.parse("покажи http трафик с айпи 10.77.0.10")
     assert query.entities[0].direction is None, query.entities[0]
     filter_str = generate_filter(query)
-    assert filter_str == "ip.addr==192.168.1.10 and http", filter_str
+    assert filter_str == "ip.addr==10.77.0.10 and http", filter_str
     print("PASS: test_ip_before_port_no_direction passed")
 
 
@@ -109,10 +109,10 @@ def test_protocol():
 
 def test_combined():
     engine = NaturalLanguageFilterEngine()
-    query = engine.parse("найди пакеты с айпи 192.168.1.100 на порт 8080")
+    query = engine.parse("найди пакеты с айпи 10.77.0.100 на порт 8080")
     assert query.has_ip() and query.has_port()
     filter_str = generate_filter(query)
-    assert "ip.addr==192.168.1.100" in filter_str
+    assert "ip.addr==10.77.0.100" in filter_str
     assert "tcp.port==8080" in filter_str
     print("PASS: test_combined passed")
 
@@ -120,8 +120,8 @@ def test_combined():
 def test_directional_ip_both():
     """«от A к B» — оба направления попадают в фильтр, а не только первое."""
     engine = NaturalLanguageFilterEngine()
-    filter_str = generate_filter(engine.parse("пакеты от 10.0.0.5 к 8.8.8.8"))
-    assert filter_str == "ip.src==10.0.0.5 and ip.dst==8.8.8.8", filter_str
+    filter_str = generate_filter(engine.parse("пакеты от 10.88.0.5 к 203.0.113.53"))
+    assert filter_str == "ip.src==10.88.0.5 and ip.dst==203.0.113.53", filter_str
     print("PASS: test_directional_ip_both passed")
 
 
@@ -142,15 +142,15 @@ def test_no_entities():
 
 
 def test_negation():
-    """Отрицание: «не http», «кроме 8.8.8.8», «не на порт 80»."""
+    """Отрицание: «не http», «кроме 203.0.113.53», «не на порт 80»."""
     engine = NaturalLanguageFilterEngine()
     cases = {
         "не http": "not (http)",
-        "покажи всё кроме 8.8.8.8": "not (ip.addr==8.8.8.8)",
+        "покажи всё кроме 203.0.113.53": "not (ip.addr==203.0.113.53)",
         "покажи пакеты не на порт 80": "not (tcp.port==80)",
         "не dns и не http": "not (http or dns)",
         "покажи tcp трафик не на порт 22": "not (tcp.port==22) and tcp",
-        "покажи http трафик с айпи 10.0.0.5": "ip.addr==10.0.0.5 and http",
+        "покажи http трафик с айпи 10.88.0.5": "ip.addr==10.88.0.5 and http",
     }
     for command, expected in cases.items():
         actual = generate_filter(engine.parse(command))
@@ -296,10 +296,10 @@ def test_chatty_commands():
 
 def test_multiple_ips():
     engine = NaturalLanguageFilterEngine()
-    query = engine.parse("найди 192.168.1.1 и 10.0.0.1")
+    query = engine.parse("найди 10.77.0.1 и 10.88.0.1")
     assert len(query.entities) == 2
     filter_str = generate_filter(query)
-    assert "192.168.1.1" in filter_str and "10.0.0.1" in filter_str
+    assert "10.77.0.1" in filter_str and "10.88.0.1" in filter_str
     print("PASS: test_multiple_ips passed")
 
 
@@ -316,7 +316,7 @@ def test_extended_dictionary():
         "каталог пользователей": "ldap",
         "покажи dhcp": "dhcp",
         "telnet трафик": "telnet",
-        "айпишник 10.0.0.5": "ip.addr==10.0.0.5",
+        "айпишник 10.88.0.5": "ip.addr==10.88.0.5",
         "порт номер 22": "tcp.port==22",
         "порты 80 и 443": "tcp.port==80,443",
     }
@@ -353,8 +353,8 @@ def test_host_commands():
     # Без имени «сайт» — это весь веб-трафик.
     assert generate_filter(engine.parse("покажи сайт")) == "(http or tls or dns)"
     # IP — это адрес, а не имя сайта.
-    assert generate_filter(engine.parse("покажи сайт 192.168.1.1")) == (
-        "ip.addr==192.168.1.1 and (http or tls or dns)"
+    assert generate_filter(engine.parse("покажи сайт 10.77.0.1")) == (
+        "ip.addr==10.77.0.1 and (http or tls or dns)"
     )
     # Имя файла доменом не считается.
     assert engine.parse("покажи сайт file.pcap").has_host() is False
@@ -390,7 +390,7 @@ def test_raw_display_filter():
 
     for text in (
         "tcp.port==443",
-        "ip.addr==10.0.0.1 and http",
+        "ip.addr==10.88.0.1 and http",
         "frame.len > 1000",
         "tcp.flags.syn==1",
         "http.host contains \"example.com\"",

@@ -14,7 +14,7 @@ display-фильтров и превращает его в функцию-пре
   ssh, ftp, smtp, ntp, ip, ipv6.
 
 Примеры:
-    compile_filter("ip.addr==192.168.1.1")
+    compile_filter("ip.addr==10.77.0.1")
     compile_filter("tcp.port==80 or tcp.port==443")
     compile_filter("eth.addr==aa:bb:cc:dd:ee:ff and not http")
 """

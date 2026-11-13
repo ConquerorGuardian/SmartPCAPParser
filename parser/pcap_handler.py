@@ -8,7 +8,7 @@ Wireshark/tshark.
 Типовой сценарий:
 
     handler = PcapHandler(preview_count=200)
-    result = handler.load_and_filter("capture.pcap", "ip.addr==192.168.1.1")
+    result = handler.load_and_filter("capture.pcap", "ip.addr==10.77.0.1")
     for row in result.rows:
         print(row.frame, row.source, "->", row.destination)
 """

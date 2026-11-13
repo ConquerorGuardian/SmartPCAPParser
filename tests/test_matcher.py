@@ -22,13 +22,13 @@ def matched(filter_string: str) -> list[int]:
 
 
 def test_ip_addr():
-    assert matched("ip.addr==192.168.1.10") == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13]
+    assert matched("ip.addr==10.77.0.10") == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13]
     print("PASS: test_ip_addr")
 
 
 def test_ip_src_dst():
-    assert matched("ip.src==8.8.8.8") == [3]
-    assert matched("ip.dst==8.8.8.8") == [2]
+    assert matched("ip.src==203.0.113.53") == [3]
+    assert matched("ip.dst==203.0.113.53") == [2]
     print("PASS: test_ip_src_dst")
 
 
@@ -60,27 +60,27 @@ def test_protocol_names():
 
 
 def test_mac_fields():
-    assert matched("eth.addr==aa:bb:cc:dd:ee:01") == ALL
-    assert matched("eth.src==aa:bb:cc:dd:ee:03") == [5, 7]
+    assert matched("eth.addr==02:00:00:00:00:01") == ALL
+    assert matched("eth.src==02:00:00:00:00:03") == [5, 7]
     print("PASS: test_mac_fields")
 
 
 def test_logic_operators():
     assert matched("tcp.port==80 or tcp.port==443") == [4, 5, 6, 7, 8]
-    assert matched("http and ip.addr==93.184.216.34") == [6, 7]
+    assert matched("http and ip.addr==198.51.100.34") == [6, 7]
     assert matched("not tcp") == [1, 2, 3, 9, 10, 13]
-    assert matched("(http or dns) and ip.addr==8.8.8.8") == [2, 3]
+    assert matched("(http or dns) and ip.addr==203.0.113.53") == [2, 3]
     print("PASS: test_logic_operators")
 
 
 def test_value_lists():
     assert matched("tcp.port==80,443") == [4, 5, 6, 7, 8]
-    assert matched("ip.addr==8.8.8.8,93.184.216.34") == [2, 3, 4, 5, 6, 7]
+    assert matched("ip.addr==203.0.113.53,198.51.100.34") == [2, 3, 4, 5, 6, 7]
     print("PASS: test_value_lists")
 
 
 def test_not_equal():
-    result = matched("ip.addr!=8.8.8.8")
+    result = matched("ip.addr!=203.0.113.53")
     assert 2 not in result and 3 not in result
     assert 1 in result
     print("PASS: test_not_equal")
@@ -102,7 +102,7 @@ def test_bad_filters():
 
 
 def test_validity_helper():
-    assert is_valid_filter("ip.addr==192.168.1.1")
+    assert is_valid_filter("ip.addr==10.77.0.1")
     assert not is_valid_filter("bad.field==1")
     print("PASS: test_validity_helper")
 
@@ -145,7 +145,7 @@ def test_negation():
     """«не http» исключает HTTP, а не показывает его."""
     assert matched("not (http)") == [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13]
     assert matched("tcp and not (tcp.port==80)") == [8, 11, 12]
-    assert matched("not (ip.addr==192.168.1.10)") == [11, 12]
+    assert matched("not (ip.addr==10.77.0.10)") == [11, 12]
     print("PASS: test_negation")
 
 
@@ -200,7 +200,7 @@ def test_new_protocols():
 
     # ipv4/ipv6 — это семейство адреса, а не прикладной протокол.
     ipv4 = Packet(number=2, timestamp=0.0, length=54, wire_length=54,
-                  src_ip="10.0.0.5", dst_ip="8.8.8.8", transport="TCP",
+                  src_ip="10.88.0.5", dst_ip="203.0.113.53", transport="TCP",
                   protocol="TCP")
     ipv6 = Packet(number=3, timestamp=0.0, length=54, wire_length=54,
                   src_ip="2001:db8::1", dst_ip="2001:db8::2", transport="TCP",
@@ -218,7 +218,7 @@ def test_numeric_fields():
 
     packet = Packet(
         number=7, timestamp=0.0, length=120, wire_length=120,
-        src_ip="10.0.0.1", dst_ip="10.0.0.2", transport="TCP", protocol="TCP",
+        src_ip="10.88.0.1", dst_ip="10.88.0.2", transport="TCP", protocol="TCP",
         src_port=40000, dst_port=80, ttl=61, ip_len=106, tcp_len=66,
         tcp_window=64240, seq=1000, tcp_ack=2000,
     )

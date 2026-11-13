@@ -24,7 +24,7 @@ from parser.verdict import (
 SYN, ACK, PSH, RST = 0x02, 0x10, 0x08, 0x04
 
 
-def packet(number, protocol="TCP", src_ip="192.168.1.10", dst_ip="10.0.0.5",
+def packet(number, protocol="TCP", src_ip="10.77.0.10", dst_ip="10.88.0.5",
            src_port=None, dst_port=None, flags=0, length=60, app="",
            timestamp=0.0, payload=b"", info=""):
     return Packet(
@@ -48,13 +48,13 @@ def packet(number, protocol="TCP", src_ip="192.168.1.10", dst_ip="10.0.0.5",
 def scan_traffic():
     """Четыре попытки подключения, ответа нет."""
     return [
-        packet(1, src_ip="192.168.1.10", dst_ip="10.0.0.5", src_port=50001,
+        packet(1, src_ip="10.77.0.10", dst_ip="10.88.0.5", src_port=50001,
                dst_port=22, flags=SYN),
-        packet(2, src_ip="192.168.1.10", dst_ip="10.0.0.5", src_port=50002,
+        packet(2, src_ip="10.77.0.10", dst_ip="10.88.0.5", src_port=50002,
                dst_port=23, flags=SYN),
-        packet(3, src_ip="192.168.1.10", dst_ip="10.0.0.5", src_port=50003,
+        packet(3, src_ip="10.77.0.10", dst_ip="10.88.0.5", src_port=50003,
                dst_port=80, flags=SYN),
-        packet(4, src_ip="192.168.1.10", dst_ip="10.0.0.5", src_port=50004,
+        packet(4, src_ip="10.77.0.10", dst_ip="10.88.0.5", src_port=50004,
                dst_port=443, flags=SYN),
     ]
 
@@ -63,10 +63,10 @@ def clean_traffic():
     """Обычный HTTP-обмен без сюрпризов."""
     return [
         packet(1, src_port=50000, dst_port=80, flags=SYN),
-        packet(2, src_ip="10.0.0.5", dst_ip="192.168.1.10", src_port=80,
+        packet(2, src_ip="10.88.0.5", dst_ip="10.77.0.10", src_port=80,
                dst_port=50000, flags=SYN | ACK),
         packet(3, src_port=50000, dst_port=80, flags=PSH | ACK, app="HTTP"),
-        packet(4, src_ip="10.0.0.5", dst_ip="192.168.1.10", src_port=80,
+        packet(4, src_ip="10.88.0.5", dst_ip="10.77.0.10", src_port=80,
                dst_port=50000, flags=PSH | ACK, app="HTTP"),
     ]
 
@@ -78,7 +78,7 @@ def test_scan_detected():
     assert "без ответа" in finding.title.lower(), finding.title
     assert "сканирование" in finding.detail, finding.detail
     assert finding.severity == "warning", finding.severity
-    assert finding.command == "покажи пакеты к 10.0.0.5", finding.command
+    assert finding.command == "покажи пакеты к 10.88.0.5", finding.command
     print("PASS: test_scan_detected")
 
 
@@ -102,9 +102,9 @@ def test_resets():
 
 def test_dns_gap():
     traffic = [
-        packet(1, protocol="UDP", dst_ip="8.8.8.8", src_port=53000,
+        packet(1, protocol="UDP", dst_ip="203.0.113.53", src_port=53000,
                dst_port=53, app="DNS"),
-        packet(2, protocol="UDP", dst_ip="8.8.8.8", src_port=53001,
+        packet(2, protocol="UDP", dst_ip="203.0.113.53", src_port=53001,
                dst_port=53, app="DNS"),
     ]
     findings = detect_dns_gap(traffic)
@@ -116,7 +116,7 @@ def test_dns_gap():
 
 def test_arp_noise():
     traffic = [
-        packet(number, protocol="ARP", src_ip="192.168.1.10", dst_ip="192.168.1.1")
+        packet(number, protocol="ARP", src_ip="10.77.0.10", dst_ip="10.77.0.1")
         for number in range(1, 7)
     ] + [
         packet(number, src_port=50000, dst_port=80, flags=PSH | ACK)
@@ -131,9 +131,9 @@ def test_arp_noise():
 
 def test_watch_ports_outbound():
     traffic = [
-        packet(1, src_ip="192.168.1.10", dst_ip="203.0.113.5", src_port=51000,
+        packet(1, src_ip="10.77.0.10", dst_ip="203.0.113.5", src_port=51000,
                dst_port=445, flags=PSH | ACK),
-        packet(2, src_ip="192.168.1.10", dst_ip="203.0.113.5", src_port=51001,
+        packet(2, src_ip="10.77.0.10", dst_ip="203.0.113.5", src_port=51001,
                dst_port=445, flags=PSH | ACK),
     ]
     findings = detect_watch_ports(traffic)
@@ -147,7 +147,7 @@ def test_watch_ports_outbound():
 def test_watch_ports_internal_is_quiet():
     """Внутри локальной сети SMB — норма, не пугаем."""
     traffic = [
-        packet(1, src_ip="192.168.1.10", dst_ip="192.168.1.20", src_port=51000,
+        packet(1, src_ip="10.77.0.10", dst_ip="10.77.0.20", src_port=51000,
                dst_port=445, flags=PSH | ACK),
     ]
     assert detect_watch_ports(traffic) == []
@@ -204,7 +204,7 @@ def test_format_verdict():
     text = format_verdict(build_verdict(scan_traffic()))
     assert "4 пакетов" in text
     assert "•" in text
-    assert "команда: покажи пакеты к 10.0.0.5" in text, text
+    assert "команда: покажи пакеты к 10.88.0.5" in text, text
     print("PASS: test_format_verdict")
 
 
@@ -230,7 +230,7 @@ def test_port_scan_detector():
     from parser.verdict import detect_port_scan
 
     scanner = [
-        packet(index, src_ip="192.168.1.10", dst_ip="10.0.0.5",
+        packet(index, src_ip="10.77.0.10", dst_ip="10.88.0.5",
                src_port=40000 + index, dst_port=port, flags=SYN)
         for index, port in enumerate(range(20, 60), start=1)
     ]
@@ -238,7 +238,7 @@ def test_port_scan_detector():
     assert len(findings) == 1, findings
     assert findings[0].severity == "critical", findings[0].severity
     assert "40" in findings[0].detail
-    assert findings[0].command == "покажи пакеты к 10.0.0.5"
+    assert findings[0].command == "покажи пакеты к 10.88.0.5"
 
     # Пять портов — обычная работа, не скан.
     few = [packet(index, dst_port=port, flags=SYN)
@@ -253,8 +253,8 @@ def test_icmp_errors_detector():
 
     errors = []
     for index, icmp_type in enumerate((3, 3, 11), start=1):
-        item = packet(index, protocol="ICMP", src_ip="10.0.0.1",
-                      dst_ip="192.168.1.10")
+        item = packet(index, protocol="ICMP", src_ip="10.88.0.1",
+                      dst_ip="10.77.0.10")
         item.icmp_type = icmp_type
         errors.append(item)
     findings = detect_icmp_errors(errors)
@@ -275,12 +275,12 @@ def test_broadcast_detector():
 
     noise = []
     for index in range(1, 26):
-        item = packet(index, protocol="UDP", src_ip="192.168.1.10",
+        item = packet(index, protocol="UDP", src_ip="10.77.0.10",
                       dst_ip="255.255.255.255", dst_port=5353)
         item.dst_mac = "ff:ff:ff:ff:ff:ff"
         noise.append(item)
-    normal = [packet(index, dst_ip="10.0.0.5", dst_port=80,
-                     src_ip="192.168.1.10") for index in range(1, 26)]
+    normal = [packet(index, dst_ip="10.88.0.5", dst_port=80,
+                     src_ip="10.77.0.10") for index in range(1, 26)]
     packets = noise + normal
     findings = detect_broadcast_storm(packets)
     assert len(findings) == 1, findings
@@ -295,16 +295,16 @@ def test_top_talker_detector():
     from parser.verdict import detect_top_talker
 
     packets = [
-        packet(index, src_ip="192.168.1.50", dst_ip="10.0.0.5",
+        packet(index, src_ip="10.77.0.50", dst_ip="10.88.0.5",
                src_port=40000 + index, dst_port=443, length=1400, flags=PSH | ACK)
         for index in range(1, 150)
     ]
-    packets.append(packet(150, src_ip="192.168.1.10", dst_ip="10.0.0.5",
+    packets.append(packet(150, src_ip="10.77.0.10", dst_ip="10.88.0.5",
                           src_port=50000, dst_port=80, length=60, flags=PSH | ACK))
     findings = detect_top_talker(packets)
     assert len(findings) == 1, findings
-    assert "192.168.1.50" in findings[0].detail
-    assert findings[0].command == "покажи пакеты от 192.168.1.50"
+    assert "10.77.0.50" in findings[0].detail
+    assert findings[0].command == "покажи пакеты от 10.77.0.50"
     assert detect_top_talker(packets[:10]) == []
     print("PASS: test_top_talker_detector")
 

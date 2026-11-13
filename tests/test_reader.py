@@ -45,7 +45,7 @@ def test_arp_packet():
     packets, _ = read_packets(SAMPLE_PCAP)
     arp = packets[0]
     assert arp.protocol == "ARP"
-    assert arp.src_ip == "192.168.1.10"
+    assert arp.src_ip == "10.77.0.10"
     assert "Who has" in arp.info
     print("PASS: test_arp_packet")
 
@@ -116,7 +116,7 @@ def test_icmp_packet():
 def test_mac_addresses():
     packets, _ = read_packets(SAMPLE_PCAP)
     packet = packets[0]
-    assert packet.src_mac == "aa:bb:cc:dd:ee:01"
+    assert packet.src_mac == "02:00:00:00:00:01"
     assert packet.dst_mac == "ff:ff:ff:ff:ff:ff"
     print("PASS: test_mac_addresses")
 

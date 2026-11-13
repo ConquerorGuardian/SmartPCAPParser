@@ -51,7 +51,7 @@ def test_filter_error():
 def test_missing_file():
     handler = PcapHandler()
     result = handler.load_and_filter(
-        Path(__file__).parent / "missing.pcap", "ip.addr==1.1.1.1")
+        Path(__file__).parent / "missing.pcap", "ip.addr==203.0.113.54")
     assert result.error is not None
     assert "не найден" in result.error.lower()
     print("PASS: test_missing_file")
@@ -79,9 +79,9 @@ def test_row_fields():
     assert row.frame == 6
     assert row.protocol == "TCP", row.protocol
     assert "HTTP" in row.info, row.info
-    assert row.source == "192.168.1.10", row.source
+    assert row.source == "10.77.0.10", row.source
     assert row.src_port == "40000", row.src_port
-    assert row.destination == "93.184.216.34", row.destination
+    assert row.destination == "198.51.100.34", row.destination
     assert row.dst_port == "80", row.dst_port
     assert row.time == "0.260000", row.time
     assert row.to_dict()["Src Port"] == "40000"

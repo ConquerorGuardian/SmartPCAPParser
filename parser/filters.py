@@ -5,8 +5,8 @@
 совместимый с Wireshark (и pyshark).
 
 Примеры:
-- ip.addr==192.168.1.1
-- ip.addr==192.168.1.1 and tcp.port==80
+- ip.addr==10.77.0.1
+- ip.addr==10.77.0.1 and tcp.port==80
 - tcp.srcport==443 or udp.dstport==53
 - eth.addr==aa:bb:cc:dd:ee:ff
 - http or dns or icmp
@@ -323,7 +323,7 @@ class FilterGenerator:
             for e in query.entities
         )
         # Если адрес уже указан, отдельное «ip»/«ipv6» в фильтре лишнее:
-        # ip.addr==10.0.0.5 and ip — это шум.
+        # ip.addr==10.88.0.5 and ip — это шум.
         has_ip = any(e.entity_type == "ip" for e in query.entities)
 
         parts: list[str] = []

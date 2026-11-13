@@ -88,7 +88,7 @@ SRC_WORDS = {"от", "из", "со", "откуда", "исходит", "source",
 DST_WORDS = {"к", "ко", "кому", "куда", "назначению", "серверу",
              "destination", "dst", "получатель", "получателя", "входящий"}
 
-# Отрицание: «не http», «кроме 8.8.8.8», «без dns».
+# Отрицание: «не http», «кроме 203.0.113.53», «без dns».
 NEGATION_WORDS = {"не", "нет", "кроме", "исключая", "исключи", "исключить",
                   "убери", "убрать", "минус", "без", "not", "except",
                   "игнорируй", "игнорировать", "пропусти", "не считая",
@@ -96,7 +96,7 @@ NEGATION_WORDS = {"не", "нет", "кроме", "исключая", "искл�
                   "не показывать", "скрыть", "скрой"}
 
 # Слова-связки, которые могут стоять между отрицанием и значением:
-# «не на порт 80», «кроме трафика к 8.8.8.8».
+# «не на порт 80», «кроме трафика к 203.0.113.53».
 CONNECTOR_WORDS = {
     "на", "в", "во", "по", "про", "для", "через", "и", "или", "а", "но",
     "все", "всё", "пакеты", "пакет", "пакета", "трафик", "трафика", "данные",
@@ -314,7 +314,7 @@ def is_show_all(command: str) -> bool:
     return bool(words) and all(word in SHOW_ALL_WORDS for word in words)
 
 # Фильтр Wireshark, набранный как есть: «tcp.port==443», «frame.len > 1000»,
-# «ip.addr==10.0.0.1 and http». Пользователь, знающий Wireshark, вправе
+# «ip.addr==10.88.0.1 and http». Пользователь, знающий Wireshark, вправе
 # вставить такой фильтр в строку команды — его не нужно переводить словами.
 DISPLAY_FIELD_RE = re.compile(r"\b[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+\b")
 DISPLAY_OP_RE = re.compile(r"==|!=|>=|<=|>|<|\bcontains\b|\bmatches\b|\bin\b")
@@ -454,7 +454,7 @@ class ExtractedEntity:
     normalized_value: str         # нормализованное значение
     direction: str | None = None  # 'src' / 'dst' (для ip и port)
     protocol_filter: str | None = None  # фильтр протокола (http, dns...)
-    negated: bool = False         # «не http», «кроме 8.8.8.8»
+    negated: bool = False         # «не http», «кроме 203.0.113.53»
 
 
 @dataclass
@@ -594,8 +594,8 @@ class NaturalLanguageFilterEngine:
         Определяет направление по словам перед значением.
 
         Смотрим на 2-3 слова назад и пропускаем служебные слова вроде
-        "айпи" или "порт": "пакеты от 10.0.0.5" -> src,
-        "пакеты к 8.8.8.8" -> dst, "пакеты с айпи 10.0.0.5" -> None.
+        "айпи" или "порт": "пакеты от 10.88.0.5" -> src,
+        "пакеты к 203.0.113.53" -> dst, "пакеты с айпи 10.88.0.5" -> None.
         """
         tokens = [match.group(0) for match in re.finditer(r"\S+", text[:position])]
 
@@ -614,7 +614,7 @@ class NaturalLanguageFilterEngine:
 
     @staticmethod
     def _negated_before(text: str, position: int) -> bool:
-        """Стоит ли перед значением отрицание: «не http», «кроме 8.8.8.8»."""
+        """Стоит ли перед значением отрицание: «не http», «кроме 203.0.113.53»."""
         tokens = [match.group(0) for match in re.finditer(r"\S+", text[:position])]
 
         for raw_word in reversed(tokens[-5:]):
@@ -690,7 +690,7 @@ class NaturalLanguageFilterEngine:
     def _extract_hosts(self, text: str, query: ParsedQuery) -> None:
         """Команды вида «покажи сайт example.com» или «трафик к домену test.ru»."""
         if query.has_ip():
-            # «сайт 192.168.1.1» — это адрес, а не имя.
+            # «сайт 10.77.0.1» — это адрес, а не имя.
             return
 
         triggers = [

@@ -69,10 +69,10 @@ def _icmp(number, src_ip, dst_ip, length=40, timestamp=0.0):
 
 def sample_packets():
     return [
-        _tcp(1, "10.0.0.1", 1234, "10.0.0.2", 80, length=100, timestamp=0.0),
-        _tcp(2, "10.0.0.2", 80, "10.0.0.1", 1234, length=400, timestamp=0.5),
-        _udp(3, "10.0.0.1", 5353, "8.8.8.8", 53, length=60, timestamp=1.0),
-        _icmp(4, "10.0.0.1", "10.0.0.2", length=40, timestamp=2.5),
+        _tcp(1, "10.88.0.1", 1234, "10.88.0.2", 80, length=100, timestamp=0.0),
+        _tcp(2, "10.88.0.2", 80, "10.88.0.1", 1234, length=400, timestamp=0.5),
+        _udp(3, "10.88.0.1", 5353, "203.0.113.53", 53, length=60, timestamp=1.0),
+        _icmp(4, "10.88.0.1", "10.88.0.2", length=40, timestamp=2.5),
     ]
 
 
@@ -111,7 +111,7 @@ def test_conversations():
     biggest = pairs[0]
     assert isinstance(biggest, Conversation)
     assert {biggest.endpoint_a, biggest.endpoint_b} == {
-        "10.0.0.1:1234", "10.0.0.2:80"
+        "10.88.0.1:1234", "10.88.0.2:80"
     }
     assert biggest.total_packets == 2
     assert biggest.total_bytes == 500
@@ -131,14 +131,14 @@ def test_endpoints():
     nodes = endpoints(sample_packets())
     by_address = {node.address: node for node in nodes}
 
-    client = by_address["10.0.0.1"]
+    client = by_address["10.88.0.1"]
     assert client.packets_sent == 3, client.packets_sent
     assert client.packets_received == 1, client.packets_received
     assert client.bytes_sent == 200, client.bytes_sent
     assert client.bytes_received == 400, client.bytes_received
     assert client.total_bytes == 600
 
-    server = by_address["10.0.0.2"]
+    server = by_address["10.88.0.2"]
     assert server.packets_sent == 1, server.packets_sent
     assert server.packets_received == 2
     print("PASS: test_endpoints")
@@ -146,10 +146,10 @@ def test_endpoints():
 
 def test_endpoint_label():
     packet = sample_packets()[0]
-    assert endpoint_label(packet, source=True) == "10.0.0.1:1234"
-    assert endpoint_label(packet, source=False) == "10.0.0.2:80"
+    assert endpoint_label(packet, source=True) == "10.88.0.1:1234"
+    assert endpoint_label(packet, source=False) == "10.88.0.2:80"
     icmp = sample_packets()[3]
-    assert endpoint_label(icmp, source=True) == "10.0.0.1"
+    assert endpoint_label(icmp, source=True) == "10.88.0.1"
     print("PASS: test_endpoint_label")
 
 
@@ -245,19 +245,19 @@ def test_stats_page_filters():
     assert "tls.handshake.extensions_server_name" in site, site
     assert 'dns.qry.name contains "example.com"' in site, site
 
-    assert node_filter("10.0.0.1") == "ip.addr==10.0.0.1", node_filter("10.0.0.1")
+    assert node_filter("10.88.0.1") == "ip.addr==10.88.0.1", node_filter("10.88.0.1")
     assert node_filter("aa:bb:cc:dd:ee:ff") == "eth.addr==aa:bb:cc:dd:ee:ff"
     assert node_filter("?") == ""
     assert node_filter("не адрес") == ""
 
-    pair = conversation_filter("10.0.0.1:5000  ↔  8.8.8.8:443")
-    assert pair == "(ip.addr==10.0.0.1 and ip.addr==8.8.8.8)", pair
-    assert conversation_filter("8.8.8.8  ↔  1.1.1.1") == (
-        "(ip.addr==8.8.8.8 and ip.addr==1.1.1.1)"
+    pair = conversation_filter("10.88.0.1:5000  ↔  203.0.113.53:443")
+    assert pair == "(ip.addr==10.88.0.1 and ip.addr==203.0.113.53)", pair
+    assert conversation_filter("203.0.113.53  ↔  203.0.113.54") == (
+        "(ip.addr==203.0.113.53 and ip.addr==203.0.113.54)"
     )
     assert conversation_filter("мусор") == ""
 
-    for text in (site, node_filter("10.0.0.1"), pair):
+    for text in (site, node_filter("10.88.0.1"), pair):
         compile_filter(text)
 
 

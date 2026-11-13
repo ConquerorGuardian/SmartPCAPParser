@@ -231,7 +231,7 @@ class LayoutMixin:
         self.command_entry = ctk.CTkEntry(
             card,
             height=46,
-            placeholder_text="покажи http трафик с айпи 10.0.0.5",
+            placeholder_text="покажи http трафик с айпи 10.88.0.5",
             font=ctk.CTkFont(family="Segoe UI", size=14),
             fg_color=theme_module.THEME["panel"],
             border_color=theme_module.THEME["border"],
@@ -923,7 +923,7 @@ class LayoutMixin:
 
         ctk.CTkLabel(
             inner,
-            text="Например: «покажи http трафик с айпи 192.168.1.10»",
+            text="Например: «покажи http трафик с айпи 10.77.0.10»",
             font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=theme_module.THEME["muted"],
         ).pack(pady=(14, 0))
