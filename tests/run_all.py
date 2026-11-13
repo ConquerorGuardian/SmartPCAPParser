@@ -10,6 +10,12 @@ import sys
 import traceback
 from pathlib import Path
 
+# На Windows в CI stdout перенаправлен, и Python берёт cp1252: первый же
+# русский print падает с UnicodeEncodeError. Пишем UTF-8 всегда.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 MODULES = [
