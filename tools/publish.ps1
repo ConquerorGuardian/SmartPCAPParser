@@ -1,7 +1,7 @@
-﻿# Публикация проекта на GitHub одной командой.
+# Публикация проекта на GitHub одной командой.
 #
-#   .\tools\publish.ps1 -Repo https://github.com/Whitemoneydealer/SmartPCAPParser.git
-#   .\tools\publish.ps1 -Repo ssh://git@ssh.github.com:443/Whitemoneydealer/SmartPCAPParser.git
+#   .\tools\publish.ps1 -Repo https://github.com/ConquerorGuardian/SmartPCAPParser.git
+#   .\tools\publish.ps1 -Repo ssh://git@ssh.github.com:443/ConquerorGuardian/SmartPCAPParser.git
 #
 # Скрипт ничего не перезаписывает на сервере: только первый push и тег.
 
@@ -12,7 +12,9 @@ param(
     [switch]$SkipChecks
 )
 
-$ErrorActionPreference = "Stop"
+# Не Stop: git пишет прогресс push в stderr, и PowerShell 5.1 с Stop
+# обрывает сценарий на первой же строке прогресса. Ошибки проверяем сами.
+$ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
