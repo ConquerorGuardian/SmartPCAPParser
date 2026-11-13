@@ -48,29 +48,11 @@ jobs:
 
       - name: Tests (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          python -m tests.run_all 2>&1 | Tee-Object -FilePath test-output.txt
-          exit $LASTEXITCODE
+        run: python -m tests.run_all
 
       - name: Tests (Linux, under Xvfb)
         if: runner.os == 'Linux'
-        run: |
-          set -o pipefail
-          xvfb-run -a python -m tests.run_all 2>&1 | tee test-output.txt
-
-      - name: Save test log on failure
-        if: failure()
-        shell: pwsh
-        run: |
-          if (Test-Path test-output.txt) { Copy-Item test-output.txt ci-log.txt }
-          else { "нет вывода тестов" | Set-Content ci-log.txt }
-          git config user.name "ci"
-          git config user.email "ci@users.noreply.github.com"
-          git checkout -B "ci-log-${{ github.run_id }}"
-          git add -f ci-log.txt
-          git commit -m "log ${{ github.run_id }}"
-          git push origin "ci-log-${{ github.run_id }}"
+        run: xvfb-run -a python -m tests.run_all
 
       - name: Type check (advisory)
         continue-on-error: true
